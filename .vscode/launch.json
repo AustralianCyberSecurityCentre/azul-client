@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "get",
+            "type": "python",
+            "request": "launch",
+            "program": "azul_client/client.py",
+            "args": ["get", "-o","output"],
+            "console": "integratedTerminal"
+        },{
+            "name": "put",
+            "type": "python",
+            "request": "launch",
+            "program": "azul_client/client.py",
+            "args": ["put", "output", "samples", "--ref",  "user:llama", "--ref",  "location:ocean"],
+            "console": "integratedTerminal"
+        },
+    
+    ]
+}

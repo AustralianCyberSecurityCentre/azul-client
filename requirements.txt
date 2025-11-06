@@ -1,0 +1,10 @@
+cart
+malpz
+click
+pendulum
+rich
+httpx
+pydantic>2
+pydantic-settings
+tenacity
+azul-bedrock

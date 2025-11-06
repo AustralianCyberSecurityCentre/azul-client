@@ -1,0 +1,7 @@
+cart
+malpz
+pytest
+pytest_httpx
+python-multipart
+tox
+respx

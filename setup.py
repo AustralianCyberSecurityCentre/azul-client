@@ -19,7 +19,6 @@ setup(
     packages=["azul_client"],
     include_package_data=True,
     python_requires=">=3.12",
-    classifiers=[],
     entry_points={
         "console_scripts": ["azul = azul_client.client:cli"],
     },

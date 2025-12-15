@@ -18,6 +18,17 @@ setup(
     url="https://www.asd.gov.au/",
     packages=["azul_client"],
     include_package_data=True,
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Intended Audience :: Developers",
+        "Topic :: Software Development :: Libraries",
+    ],
     python_requires=">=3.12",
     entry_points={
         "console_scripts": ["azul = azul_client.client:cli"],

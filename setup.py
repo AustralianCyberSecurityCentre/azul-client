@@ -4,6 +4,9 @@ import os
 
 from setuptools import setup
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
 
 def open_file(fname):
     """Open and return a file-like object for the relative filename."""
@@ -30,6 +33,8 @@ setup(
         "Topic :: Software Development :: Libraries",
     ],
     python_requires=">=3.12",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     entry_points={
         "console_scripts": ["azul = azul_client.client:cli"],
     },

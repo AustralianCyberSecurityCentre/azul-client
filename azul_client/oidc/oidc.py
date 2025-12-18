@@ -49,17 +49,9 @@ class OIDC:
         if not self.cfg.azul_verify_ssl:
             print("NO VERIFY SSL", file=sys.stderr)
             verify = False
-        # bandit has bug that doesn't detect the timeout being set
-        self._c = httpx.Client(  # nosec B113
-            mounts={
-                "http://": httpx.HTTPTransport(retries=5),
-                "https://": httpx.HTTPTransport(retries=5),
-            },
-            timeout=httpx.Timeout(timeout=self.cfg.max_timeout),
-            verify=verify,
-        )
-        # bandit has bug that doesn't detect the timeout being set
-        self._local_client = httpx.Client(  # nosec B113
+        # Setup client with retries.
+        self._verify = verify
+        self._local_client = httpx.Client(
             timeout=httpx.Timeout(timeout=self.cfg.max_timeout),
         )
 
@@ -79,10 +71,19 @@ class OIDC:
         resp = self._local_client.get(self.cfg.oidc_url, timeout=httpx.Timeout(timeout=self.cfg.oidc_timeout))
         self._oidc_info = _get_json(resp, "well known")
 
+    @config._lock_azul_config
     def get_client(self):
         """Return a httpx client object with an up to date authorization token."""
-        self._c.headers.update({"authorization": "Bearer " + self.get_access_token()})
-        return self._c
+        out_client = httpx.Client(
+            headers={"authorization": "Bearer " + self._get_access_token()},
+            mounts={
+                "http://": httpx.HTTPTransport(retries=5),
+                "https://": httpx.HTTPTransport(retries=5),
+            },
+            timeout=httpx.Timeout(timeout=self.cfg.max_timeout),
+            verify=self._verify,
+        )
+        return out_client
 
     def _via_service_token(self):
         """Retrieve a token from OIDC provider using service account flow."""
@@ -206,7 +207,7 @@ class OIDC:
         self.cfg.save()
         return tk
 
-    def get_access_token(self) -> str:
+    def _get_access_token(self) -> str:
         """Get valid access token to authenticate with Azul."""
         token = self._get_token().get("access_token", "none")
         if not token and self.cfg.auth_type != "none":

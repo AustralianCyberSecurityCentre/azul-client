@@ -4,9 +4,11 @@ import configparser
 import json
 import os
 import sys
+import tempfile
 
 import click
 import pydantic
+from filelock import FileLock
 from pydantic_settings import BaseSettings
 
 config_section = "default"
@@ -25,9 +27,17 @@ def _client_config():
 
 
 class ConfigLocation(BaseSettings):
-    """Path to the azul.ini settings."""
+    """Path to settings and lock files for azul."""
 
     azul_config_location: str = os.path.join(os.path.expanduser("~"), ".azul.ini")
+    token_refresh_path_lock: str = os.path.join(tempfile.gettempdir(), "azul-token-refresh.lock")
+    token_lock_timeout: float = 30
+
+
+config_location = ConfigLocation()
+# NOTE - double locking with this as a decorator does not harm because it tracks the current processes PID.
+# So if it double acquires the lock it knows it already has the lock and continues to work.
+_lock_azul_config = FileLock(config_location.token_refresh_path_lock, timeout=config_location.token_lock_timeout)
 
 
 class Config(BaseSettings):
@@ -50,6 +60,7 @@ class Config(BaseSettings):
         """Remove trailing slash from azul_url."""
         return v.rstrip("/")
 
+    @_lock_azul_config
     def save(self):
         """Save the current configuration."""
         tmp = self.model_dump()
@@ -65,14 +76,16 @@ class Config(BaseSettings):
 
 
 @_client_config.command()
+@_lock_azul_config
 def clear_auth():
     """Reset current auth information."""
     conf = get_config()
-    conf.auth_token = ""  # nosec B105
+    conf.auth_token = {}  # nosec B105
     conf.auth_token_time = 0
     conf.save()
 
 
+@_lock_azul_config
 def get_config():
     """Get config loaded from file."""
     location = ConfigLocation().azul_config_location

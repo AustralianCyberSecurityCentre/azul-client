@@ -116,43 +116,47 @@ def oidc_svc_callback() -> OIDC:
     )
 
 
+def _mock_save(x):
+    pass
+
+
 @mock.patch("azul_client.oidc.oidc.OIDC._via_code_callback")
 @mock.patch("azul_client.oidc.oidc.OIDC._via_refresh")
-@mock.patch("azul_client.config.Config.save", lambda x: None)
+@mock.patch("azul_client.config.Config.save", _mock_save)
 def test_get_token(vr: mock.MagicMock, vcc: mock.MagicMock, oidc_svc_callback: OIDC):
     vcc.return_value = {"access_token": "token"}
     vr.return_value = {"access_token": "refreshed_token"}
     # trigger initial auth
-    assert "token" == oidc_svc_callback.get_access_token()
+    assert "token" == oidc_svc_callback._get_access_token()
     assert 1 == vcc.call_count
     assert 0 == vr.call_count
     # reuse existing token
-    assert "token" == oidc_svc_callback.get_access_token()
+    assert "token" == oidc_svc_callback._get_access_token()
     assert 1 == vcc.call_count
     assert 0 == vr.call_count
     # check that refresh token is used
     oidc_svc_callback.cfg.auth_token_time = time.time() - 60
-    assert "refreshed_token" == oidc_svc_callback.get_access_token()
+    assert "refreshed_token" == oidc_svc_callback._get_access_token()
     assert 1 == vcc.call_count
     assert 1 == vr.call_count
     # pretend that refresh token expired, so full auth required
     vr.return_value = None
     oidc_svc_callback.cfg.auth_token_time = time.time() - 600
-    assert "token" == oidc_svc_callback.get_access_token()
+    assert "token" == oidc_svc_callback._get_access_token()
     assert 2 == vcc.call_count
     assert 2 == vr.call_count
 
 
 @mock.patch("azul_client.oidc.oidc.OIDC._via_code_callback")
-@mock.patch("azul_client.config.Config.save", lambda x: None)
+@mock.patch("azul_client.config.Config.save", _mock_save)
 def test_get_token_errors(vcc: mock.MagicMock, oidc_svc_callback: OIDC, httpx_mock: HTTPXMock):
     endpt = oidc_svc_callback.cfg.oidc_url
     vcc.return_value = {"access_token": "token", "refresh_token": "invalid"}
     # trigger initial auth
-    assert "token" == oidc_svc_callback.get_access_token()
+    assert "token" == oidc_svc_callback._get_access_token()
     assert 1 == vcc.call_count
     # reuse existing token
-    assert "token" == oidc_svc_callback.get_access_token()
+    assert "token" == oidc_svc_callback._get_access_token()
     assert 1 == vcc.call_count
     # check that refresh token failure 400 results in full reauth
     vcc.return_value = {"access_token": "redo_token", "refresh_token": "invalid"}
@@ -174,7 +178,7 @@ def test_get_token_errors(vcc: mock.MagicMock, oidc_svc_callback: OIDC, httpx_mo
         status_code=400,
     )
     oidc_svc_callback.cfg.auth_token_time = time.time() - 60
-    assert "redo_token" == oidc_svc_callback.get_access_token()
+    assert "redo_token" == oidc_svc_callback._get_access_token()
 
     vcc.return_value = {"access_token": "redo_token2", "refresh_token": "invalid"}
     httpx_mock.add_response(
@@ -185,4 +189,4 @@ def test_get_token_errors(vcc: mock.MagicMock, oidc_svc_callback: OIDC, httpx_mo
         status_code=401,
     )
     oidc_svc_callback.cfg.auth_token_time = time.time() - 60
-    assert "redo_token2" == oidc_svc_callback.get_access_token()
+    assert "redo_token2" == oidc_svc_callback._get_access_token()

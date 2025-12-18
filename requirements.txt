@@ -8,3 +8,4 @@ pydantic>2
 pydantic-settings
 tenacity
 azul-bedrock
+filelock

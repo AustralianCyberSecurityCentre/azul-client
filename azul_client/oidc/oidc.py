@@ -47,7 +47,7 @@ class OIDC:
         # Requests used to force retries on status codes [500, 502, 503, 504]
         verify = True
         if not self.cfg.azul_verify_ssl:
-            print("NO VERIFY SSL", file=sys.stderr)
+            print("NO VERIFY SSL", file=sys.stdout)
             verify = False
         # Setup client with retries.
         self._verify = verify
@@ -124,7 +124,7 @@ class OIDC:
             "code_challenge_method": "S256",
         }
         url_ask_user = self._get_authorization_endpoint() + "?" + urllib.parse.urlencode(params)
-        print(f"Please navigate to the following url to continue authentication:\n{url_ask_user}", file=sys.stderr)
+        print(f"Please navigate to the following url to continue authentication:\n{url_ask_user}", file=sys.stdout)
         code = callback.receive_code(state, path="/client/callback", hostname="localhost", port=port)
         if not code:
             raise Exception("No token retrieval code was returned")

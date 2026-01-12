@@ -56,7 +56,7 @@ def receive_code(
     OIDCResponseServer.expected_path = path
     OIDCResponseServer.expected_state = expected_state
     server = HTTPServer((hostname, port), OIDCResponseServer)
-    print("Server started at http://%s:%s. Waiting for oauth callback." % (hostname, port), file=sys.stderr)
+    print("Server started at http://%s:%s. Waiting for oauth callback." % (hostname, port), file=sys.stdout)
 
     try:
         while not OIDCResponseServer.token_code:

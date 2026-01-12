@@ -95,7 +95,7 @@ def get_config():
         conf = Config()
         conf.save()
 
-    print(f"Loading config [{config_section}] from {location}", file=sys.stderr)
+    print(f"Loading config [{config_section}] from {location}", file=sys.stdout)
     tmp = configparser.ConfigParser()
     tmp.read(location)
     conf = {}
@@ -112,5 +112,5 @@ def get_config():
     if conf.get("auth_token"):
         conf["auth_token"] = json.loads(conf["auth_token"])
     config = Config(**conf)
-    print(f"using Azul API at {config.azul_url}\n", file=sys.stderr)
+    print(f"using Azul API at {config.azul_url}\n", file=sys.stdout)
     return config

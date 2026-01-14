@@ -41,7 +41,7 @@ class TestBinaryUpload(BaseUploadTest):
 
     def basic_response_check(self, entity: azm.BinaryEvent.Entity):
         self.assertEqual(entity.sha256, "ed7002b439e9ac845f22357d822bac1444730fbdb6016d3ec9432297b9ec9f73")
-        self.assertEqual(entity.file_format_legacy, "Text")
+        self.assertEqual(entity.file_format, "text/plain")
         self.assertEqual(entity.mime, "text/plain")
 
     def test_basic_upload(self):
@@ -107,7 +107,7 @@ class TestBinaryUploadDataless(BaseUploadTest):
 
     def basic_response_check(self, entity: azm.BinaryEvent.Entity):
         self.assertEqual(entity.sha256, self.parent_sha256)
-        self.assertEqual(entity.file_format_legacy, "Text")
+        self.assertEqual(entity.file_format, "text/plain")
         self.assertEqual(entity.mime, "text/plain")
 
     def test_basic_upload(self):
@@ -170,7 +170,7 @@ class TestBinaryUploadChild(BaseUploadTest):
 
     def basic_response_check(self, entity: azm.BinaryEvent.Entity):
         self.assertEqual(entity.sha256, "d2dba47e53f9d97060b3e5fee9416d06177aee5e2e9488f8643d1c3f55cc9f6b")
-        self.assertEqual(entity.file_format_legacy, "Text")
+        self.assertEqual(entity.file_format, "text/plain")
         self.assertEqual(entity.mime, "text/plain")
 
     def test_basic_upload(self):

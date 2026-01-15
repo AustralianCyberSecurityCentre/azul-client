@@ -447,7 +447,7 @@ class BinariesData(BaseApiHandler):
         take_n_strings: int = 1000,
         filter: str | None = None,
         regex: str | None = None,
-        file_format_legacy: str | None = None,
+        file_format: str | None = None,
     ) -> models_restapi.BinaryStrings:
         """Get strings for a binary file with multiple potential additional parameters.
 
@@ -459,7 +459,7 @@ class BinariesData(BaseApiHandler):
         :param int take_n_strings: ow many strings to return.
         :param str filter: Case-insensitive search string to filter strings with.
         :param str regex: Regex pattern to search strings with.
-        :param str file_format_legacy: Optional file type for AI string filter.
+        :param str file_format: Optional file type for AI string filter.
         """
         params = {
             "min_length": min_length,
@@ -469,7 +469,7 @@ class BinariesData(BaseApiHandler):
             "take_n_strings": take_n_strings,
             "filter": filter,
             "regex": regex,
-            "file_format_legacy": file_format_legacy,
+            "file_format": file_format,
         }
         params = self.filter_none_values(params)
 

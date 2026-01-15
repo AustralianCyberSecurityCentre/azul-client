@@ -25,7 +25,6 @@ class TestBinaryFind(unittest.TestCase):
         cls.common_plugin_name = "Entropy"
         cls.common_feature_value = "txt"
         cls.common_feature_key = "malformed"
-        cls.common_file_format_legacy = "Text"
         cls.common_file_format = "text/plain"
         cls.dummy_tag = "dummy"
         cls.user = module_ref.get("user")
@@ -314,31 +313,6 @@ class TestBinaryFind(unittest.TestCase):
     def test_find_entity_size_smaller(self):
         find_options = FindOptions(less_than_size_bytes=20000)
         self._search_count_ge(find_options, self.default_min_hash_count)
-
-    # --- BINARY INFO - FILE TYPE
-    def test_find_simple_file_format_legacy(self):
-        # Normal
-        find_options = FindOptions(file_formats_legacy=self.common_file_format_legacy)
-        resp = self._search_count_ge(find_options, self.default_min_hash_count)
-        for item in resp.items:
-            self.assertEqual(self.common_file_format_legacy, item.file_format_legacy)
-        # List
-        find_options = FindOptions(file_formats_legacy=[self.common_file_format_legacy])
-        resp = self._search_count_ge(find_options, self.default_min_hash_count)
-        for item in resp.items:
-            self.assertEqual(self.common_file_format_legacy, item.file_format_legacy)
-
-    def test_find_simple_file_format_legacy_exclude(self):
-        # Normal
-        find_options = FindOptions(file_formats_legacy_exclude=self.common_file_format_legacy)
-        resp = self._search_count_ge(find_options, self.default_min_hash_count)
-        for item in resp.items:
-            self.assertNotEqual(self.common_file_format_legacy, item.file_format_legacy)
-        # List
-        find_options = FindOptions(file_formats_legacy_exclude=[self.common_file_format_legacy])
-        resp = self._search_count_ge(find_options, self.default_min_hash_count)
-        for item in resp.items:
-            self.assertNotEqual(self.common_file_format_legacy, item.file_format_legacy)
 
     def test_find_simple_file_format(self):
         # Normal

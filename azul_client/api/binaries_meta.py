@@ -185,9 +185,6 @@ class FindOptions:
         self._add_if_not_none("size:>%s", self.greater_than_size_bytes)
         self._add_if_not_none("size:<%s", self.less_than_size_bytes)
 
-        self._add_list('file_format_legacy:"%s"', self.file_formats_legacy)
-        self._add_list('!file_format_legacy:"%s"', self.file_formats_legacy_exclude, negation=True)
-
         self._add_list('file_format:"%s"', self.file_formats)
         self._add_list('!file_format:"%s"', self.file_formats_exclude, negation=True)
 

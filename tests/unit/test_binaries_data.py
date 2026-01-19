@@ -215,7 +215,7 @@ def test_upload_neutering(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
     handle.seek(0)
 
     output_contents = io.BytesIO()
-    (header, _) = cart.unpack_stream(handle, output_contents)
+    header, _ = cart.unpack_stream(handle, output_contents)
 
     assert b"content" == output_contents.getvalue()
     # Validate that another cart was not used to transport this content

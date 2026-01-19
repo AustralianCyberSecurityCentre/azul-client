@@ -27,12 +27,10 @@ class TestClient(BaseConfigTestCase):
 
     def test_get(self):
         with tempfile.NamedTemporaryFile("w") as f:
-            f.write(
-                """
+            f.write("""
 [default]
 azul_url = http://lemon
-            """
-            )
+            """)
             f.seek(0)
             print(f.name)
             os.environ["AZUL_CONFIG_LOCATION"] = f.name
@@ -42,12 +40,10 @@ azul_url = http://lemon
         self.assertEqual(conf.auth_type, "callback")
 
         with tempfile.NamedTemporaryFile("w") as f:
-            f.write(
-                """
+            f.write("""
 [default]
 azul_url = http://lemon/
-            """
-            )
+            """)
             f.seek(0)
             print(f.name)
             os.environ["AZUL_CONFIG_LOCATION"] = f.name
@@ -57,15 +53,13 @@ azul_url = http://lemon/
         self.assertEqual(conf.auth_type, "callback")
 
         with tempfile.NamedTemporaryFile("w") as f:
-            f.write(
-                """
+            f.write("""
 [default]
 azul_url = http://lemon
 oidc_url = here
 auth_type = blah
 auth_client_id = there
-            """
-            )
+            """)
             f.seek(0)
             print(f.name)
             os.environ["AZUL_CONFIG_LOCATION"] = f.name

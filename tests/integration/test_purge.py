@@ -7,7 +7,6 @@ from .base_test import BaseApiTest
 
 
 class TestPurgeApi(BaseApiTest):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

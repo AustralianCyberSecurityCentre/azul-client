@@ -29,12 +29,12 @@ def _get_json(resp: httpx.Response, dbg: str) -> dict:
         )
     try:
         data = resp.json()
-    except json.decoder.JSONDecodeError:
+    except json.decoder.JSONDecodeError as e:
         raise Exception(
             f"Failed to fetch {dbg} - response was not json. "
             f"Is '{resp.url}' the correct endpoint? - "
             f"Content:\n{resp.content[:1000]}"
-        )
+        ) from e
     return data
 
 

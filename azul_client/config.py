@@ -102,11 +102,11 @@ def get_config():
     try:
         # configparser has an odd data structure, convert to dictionary
         conf = {**tmp[config_section]}
-    except KeyError:
+    except KeyError as e:
         if config_section == "default":
             print(f"Config section [{config_section}] is invalid, generating defaults", file=sys.stderr)
         else:
-            raise Exception(f"config section [{config_section}] is invalid")
+            raise Exception(f"config section [{config_section}] is invalid") from e
 
     # the auth token was saved as a json string
     if conf.get("auth_token"):

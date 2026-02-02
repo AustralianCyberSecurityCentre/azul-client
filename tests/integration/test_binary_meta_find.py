@@ -78,7 +78,7 @@ class TestBinaryFind(unittest.TestCase):
         self.assertTrue(
             at_least_one_hash_found,
             "None of the newest submission hashes were found when sorting by "
-            + f"newest submission first and these should be the newest submissions! [{", ".join(resp_newest_first_sha256s)}]",
+            + f"newest submission first and these should be the newest submissions! [{', '.join(resp_newest_first_sha256s)}]",
         )
         newest = pendulum.parse(resp_newest_first.items[0].sources[0].timestamp)
         oldest = pendulum.parse(resp_oldest_first.items[0].sources[0].timestamp)

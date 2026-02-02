@@ -80,7 +80,6 @@ def dummy_entity_meta() -> dict:
 
 
 def test_upload(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
-
     httpx_mock.add_response(
         url=re.compile(rf".*\/api\/v0\/binaries\/source\?.*"),
         method="POST",

@@ -34,8 +34,8 @@ class Purge(BaseApiHandler):
             raise ValueError("Timestamp is required to be set and cannot be None or and empty string.")
         try:
             pendulum.parse(timestamp)
-        except ParserError:
-            raise ValueError(f"Timestamp has an invalid value '{timestamp}' must be a")
+        except ParserError as e:
+            raise ValueError(f"Timestamp has an invalid value '{timestamp}' must be a") from e
         params["timestamp"] = timestamp
 
         if purge:

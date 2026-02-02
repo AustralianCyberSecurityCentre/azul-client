@@ -443,11 +443,13 @@ def get_meta(sha256: str, output: str, pretty: bool):
             f.write(entity.model_dump_json(indent=4))
 
 
-@binaries.command(help="""
+@binaries.command(
+    help="""
 Find and download samples from Azul.
 Combining multiple filters may lead to unexpected results.
 You can only query multiple attributes over a single authors document.
-""")
+"""
+)
 @click.option("-o", "--output", help="output folder")
 @click.option("--term", help="search term (refer to UI Explore for suggested search terms)", default="")
 @click.option("--max", help="max number of entities to retrieve", default=100)

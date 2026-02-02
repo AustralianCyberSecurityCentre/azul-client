@@ -25,7 +25,6 @@ class BaseUploadTest(unittest.TestCase):
 
 
 class TestBinaryUpload(BaseUploadTest):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

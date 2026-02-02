@@ -41,9 +41,9 @@ class TestSourcesApi(BaseApiTest):
             value=cls.known_extension_feat_val,
             security=cls.default_security,
         )
-        assert (
-            tag_created_2 is None
-        ), "Failed to setup for feature test, is there at least one file with a txt extension."
+        assert tag_created_2 is None, (
+            "Failed to setup for feature test, is there at least one file with a txt extension."
+        )
 
         # Find the current version of Entropy for later use.
         list_of_plugins = cls.api.plugins.get_all_plugins()

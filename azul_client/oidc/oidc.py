@@ -113,7 +113,7 @@ class OIDC:
         port = 8080
         callback_url = f"http://localhost:{port}/client/callback"
 
-        state = str(random.randint(1000000, 9999999))  # nosec B311
+        state = str(random.randint(1000000, 9999999))  # noqa S311
         params = {
             "response_type": "code",
             "client_id": self.cfg.auth_client_id,

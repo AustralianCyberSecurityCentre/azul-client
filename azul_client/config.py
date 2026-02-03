@@ -48,7 +48,7 @@ class Config(BaseSettings):
     auth_type: str = "callback"
     auth_scopes: str = ""
     auth_client_id: str = "azul-web"
-    auth_client_secret: str = ""  # nosec B105
+    auth_client_secret: str = ""  # noqa S105
     azul_verify_ssl: bool = True
     auth_token: dict | None = {}
     auth_token_time: int = 0
@@ -80,7 +80,7 @@ class Config(BaseSettings):
 def clear_auth():
     """Reset current auth information."""
     conf = get_config()
-    conf.auth_token = {}  # nosec B105
+    conf.auth_token = {}  # noqa S105
     conf.auth_token_time = 0
     conf.save()
 

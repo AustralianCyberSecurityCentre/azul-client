@@ -211,3 +211,7 @@ dmypy.json
 .pyre/
 
 # End of https://www.gitignore.io/api/python,pycharm
+
+.ruff_cache
+# FUTURE UV IS USEFUL
+uv.lock

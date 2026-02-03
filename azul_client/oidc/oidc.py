@@ -29,12 +29,12 @@ def _get_json(resp: httpx.Response, dbg: str) -> dict:
         )
     try:
         data = resp.json()
-    except json.decoder.JSONDecodeError:
+    except json.decoder.JSONDecodeError as e:
         raise Exception(
             f"Failed to fetch {dbg} - response was not json. "
             f"Is '{resp.url}' the correct endpoint? - "
             f"Content:\n{resp.content[:1000]}"
-        )
+        ) from e
     return data
 
 
@@ -113,7 +113,7 @@ class OIDC:
         port = 8080
         callback_url = f"http://localhost:{port}/client/callback"
 
-        state = str(random.randint(1000000, 9999999))  # nosec B311
+        state = str(random.randint(1000000, 9999999))  # noqa S311
         params = {
             "response_type": "code",
             "client_id": self.cfg.auth_client_id,

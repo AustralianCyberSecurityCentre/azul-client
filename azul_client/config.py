@@ -48,7 +48,7 @@ class Config(BaseSettings):
     auth_type: str = "callback"
     auth_scopes: str = ""
     auth_client_id: str = "azul-web"
-    auth_client_secret: str = ""  # nosec B105
+    auth_client_secret: str = ""  # noqa S105
     azul_verify_ssl: bool = True
     auth_token: dict | None = {}
     auth_token_time: int = 0
@@ -80,7 +80,7 @@ class Config(BaseSettings):
 def clear_auth():
     """Reset current auth information."""
     conf = get_config()
-    conf.auth_token = {}  # nosec B105
+    conf.auth_token = {}  # noqa S105
     conf.auth_token_time = 0
     conf.save()
 
@@ -102,11 +102,11 @@ def get_config():
     try:
         # configparser has an odd data structure, convert to dictionary
         conf = {**tmp[config_section]}
-    except KeyError:
+    except KeyError as e:
         if config_section == "default":
             print(f"Config section [{config_section}] is invalid, generating defaults", file=sys.stderr)
         else:
-            raise Exception(f"config section [{config_section}] is invalid")
+            raise Exception(f"config section [{config_section}] is invalid") from e
 
     # the auth token was saved as a json string
     if conf.get("auth_token"):

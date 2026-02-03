@@ -45,7 +45,6 @@ def save_to_azul_init(_index):
 
 
 class MultiprocessingAndThreadingUploadTest(unittest.TestCase):
-
     def test_multiprocessing_upload(self):
         """Verify that multiple files can be simultaneously uploaded to Azul with the azul client."""
         total_files_to_upload = 20

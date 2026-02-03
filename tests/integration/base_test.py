@@ -10,7 +10,6 @@ from . import module_ref, module_sha256s, module_source, upload_security
 
 
 class BaseApiTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.api = Api(get_config())

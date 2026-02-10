@@ -2,12 +2,14 @@
 
 import json
 import os
+import re
 import sys
 from tempfile import SpooledTemporaryFile
 
 import click
 import pendulum
 from azul_bedrock import models_restapi
+from pendulum.datetime import DateTime
 from pydantic import BaseModel
 from rich.console import Console
 
@@ -387,7 +389,12 @@ def put_stdin(y: bool, filename: str, source: str, ref: list[str], timestamp: st
     if not timestamp:
         timestamp = pendulum.now(pendulum.UTC).to_iso8601_string()
     else:
-        timestamp = pendulum.parse(timestamp).to_iso8601_string()
+        parsed_timestamp = pendulum.parse(timestamp)
+        if isinstance(parsed_timestamp, DateTime):
+            timestamp = parsed_timestamp.to_iso8601_string()
+        else:
+            click.echo(f"Provided timestamp {timestamp} is in an invalid format, it must be a DateTime.")
+            raise Exception("Provided timestamp")
 
     click.echo(f"Filename: {filename}")
     click.echo(f"Source: {source}")
@@ -498,6 +505,70 @@ def get(output: str, term: str, max: int, sort_by: models_restapi.FindBinariesSo
                     f.write(content)
             else:
                 click.echo("content not found")
+
+
+@binaries.command(
+    help="""
+Downloaded the provided sha256's from azul in Cart form.
+All provided arguments will be considered sha256's.
+You can also optionally provide and output folder to not download to the current directory.
+"""
+)
+@click.argument("sha256s", nargs=-1, type=str)
+@click.option("-o", "--output", help="output folder")
+def download(sha256s: tuple[str], output: str):
+    """Download the provided sha256's from Azul."""
+    if output:
+        click.echo(f"saving output to folder {output}")
+    else:
+        click.echo("saving file to current directory")
+        output = ""
+
+    invalid_sha256s = []
+    valid_sha256s = []
+    for sha in sha256s:
+        if not re.search(api.binaries_data.SHA256_regex, sha):
+            invalid_sha256s.append(sha)
+        else:
+            valid_sha256s.append(sha)
+
+    if len(invalid_sha256s) > 0:
+        click.echo(f"\nIgnoring the following provided invalid sha256s:\n  {'\n  '.join(invalid_sha256s)}\n")
+
+    if not valid_sha256s:
+        click.echo("No valid sha256's provided stopping now.")
+        return
+
+    click.echo(f"Downloading the following sha256's:\n  {'\n  '.join(valid_sha256s)}\n")
+    successful_download_paths = []
+    for sha in valid_sha256s:
+        # Download file and account for fail cases.
+        try:
+            raw_bytes = api.binaries_data.download(sha)
+        except BadResponse404:
+            click.echo(f"Error: Could not download the sha256 {sha} because it does not exist in Azul.")
+            continue
+        except BadResponse as e:
+            click.echo(f"Error: Could not download the sha256 {sha} with error {e}")
+            continue
+        except Exception as e:
+            click.echo(f"Error: Could not download the sha256 {sha} with unexpected error {e}")
+            continue
+
+        try:
+            new_path = os.path.join(output, sha + ".cart")
+            with open(new_path, "wb") as f:
+                f.write(raw_bytes)
+
+            successful_download_paths.append(new_path)
+        except Exception as e:
+            click.echo(f"Could not save the sha256 {sha} after successful download with error\n {e}")
+
+    # Nicer new line formatting.
+    if len(successful_download_paths) != len(valid_sha256s):
+        click.echo("")
+
+    click.echo(f"Download completed for the following files:\n  {'\n  '.join(successful_download_paths)}")
 
 
 cli.add_command(_client_config)

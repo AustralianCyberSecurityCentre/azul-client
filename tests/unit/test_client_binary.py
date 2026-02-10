@@ -491,3 +491,90 @@ def test_get(api: Api, runner: CliRunner, httpx_mock: HTTPXMock, dummy_entity: d
         sort_prop=[models_restapi.FindBinariesSortEnum.timestamp],
         sort_asc=["true"],
     )
+
+
+def test_download_normal(api: Api, runner: CliRunner, httpx_mock: HTTPXMock):
+    """Test the basic download case."""
+    # Download a single file.
+    dummy_hash_a = "a" * 64
+    httpx_mock.add_response(
+        url=f"{api.config.azul_url}/api/v0/binaries/{dummy_hash_a}/content",
+        method="GET",
+        status_code=200,
+        content=b"not-a-real-file-a",
+    )
+
+    with tempfile.TemporaryDirectory() as cur_dir:
+        number_of_files_originally = len(os.listdir(cur_dir))
+        res = runner.invoke(
+            client.download,
+            [dummy_hash_a, "--output", cur_dir],
+        )
+        assert res.exit_code == 0, res.stdout
+        number_of_files_after = len(os.listdir(cur_dir))
+        assert number_of_files_originally + 1 == number_of_files_after
+
+
+def test_download_multiple(api: Api, runner: CliRunner, httpx_mock: HTTPXMock):
+    """Test downloading two hashes at the same time."""
+    # Test downloading two files.
+    dummy_hash_a = "a" * 64
+    dummy_hash_b = "b" * 64
+    httpx_mock.add_response(
+        url=f"{api.config.azul_url}/api/v0/binaries/{dummy_hash_a}/content",
+        method="GET",
+        status_code=200,
+        content=b"not-a-real-file-a",
+    )
+    httpx_mock.add_response(
+        url=f"{api.config.azul_url}/api/v0/binaries/{dummy_hash_b}/content",
+        method="GET",
+        status_code=200,
+        content=b"not-a-real-file-b",
+    )
+
+    with tempfile.TemporaryDirectory() as cur_dir:
+        number_of_files_originally = len(os.listdir(cur_dir))
+        res = runner.invoke(
+            client.download,
+            [dummy_hash_a, dummy_hash_b, "--output", cur_dir],
+        )
+        assert res.exit_code == 0, res.stdout
+        number_of_files_after = len(os.listdir(cur_dir))
+        print(os.listdir(cur_dir))
+        assert number_of_files_originally + 2 == number_of_files_after
+
+
+def test_download_multiple_with_bad(api: Api, runner: CliRunner, httpx_mock: HTTPXMock):
+    """Test downloading two files with one bad sha256 provided and one missing sha256 provided."""
+    dummy_hash_a = "a" * 64
+    dummy_hash_b = "b" * 64
+    # hash not in azul
+    dummy_hash_c = "c" * 64
+    httpx_mock.add_response(
+        url=f"{api.config.azul_url}/api/v0/binaries/{dummy_hash_a}/content",
+        method="GET",
+        status_code=200,
+        content=b"not-a-real-file-a",
+    )
+    httpx_mock.add_response(
+        url=f"{api.config.azul_url}/api/v0/binaries/{dummy_hash_b}/content",
+        method="GET",
+        status_code=200,
+        content=b"not-a-real-file-b",
+    )
+    httpx_mock.add_response(
+        url=f"{api.config.azul_url}/api/v0/binaries/{dummy_hash_c}/content",
+        method="GET",
+        status_code=404,
+    )
+
+    with tempfile.TemporaryDirectory() as cur_dir:
+        number_of_files_originally = len(os.listdir(cur_dir))
+        res = runner.invoke(
+            client.download,
+            [dummy_hash_a, "not-a-sha256", dummy_hash_b, dummy_hash_c, "--output", cur_dir],
+        )
+        assert res.exit_code == 0, res.stdout
+        number_of_files_after = len(os.listdir(cur_dir))
+        assert number_of_files_originally + 2 == number_of_files_after

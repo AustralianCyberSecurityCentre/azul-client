@@ -29,7 +29,7 @@ class Purge(BaseApiHandler):
         :param str timestamp: Timestamp of the submission to purge (optional).
         :param bool purge: If true, perform the purge instead of a simulation (default False).
         """
-        params = {"purge": purge}
+        params: dict = {"purge": purge}
         if not timestamp:
             raise ValueError("Timestamp is required to be set and cannot be None or and empty string.")
         try:

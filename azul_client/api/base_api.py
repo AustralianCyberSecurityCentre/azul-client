@@ -22,7 +22,7 @@ class BaseApiHandler:
         self.cfg = cfg
         self.__get_client = get_client
         self._last_meta = None
-        self.__excluded_security = None
+        self.__excluded_security = []
 
     @property
     def _excluded_security(self) -> list[str]:
@@ -46,14 +46,14 @@ class BaseApiHandler:
         url: str,
         params: httpx.QueryParams | dict | None = None,
         json: Any = None,
-        timeout: int | None = None,
+        timeout: int | httpx._client.UseClientDefault | None = None,
     ) -> httpx.Response:
         if timeout is None:
             timeout = httpx.USE_CLIENT_DEFAULT
         if self._excluded_security:
             if not params:
                 params = dict()
-            params["x"] = self._excluded_security
+            params["x"] = self._excluded_security  # type: ignore
         if method == HTTPMethod.GET:
             if json is not None:
                 raise ValueError("Get request cannot accept a body parameter.")
@@ -74,7 +74,7 @@ class BaseApiHandler:
         *,
         method: HTTPMethod,
         url: str,
-        response_model: type[T],
+        response_model: type[T] | TypeAdapter,
         params: httpx.QueryParams | dict | None = None,
         json: Any = None,
         get_data_only: bool = False,
@@ -115,7 +115,7 @@ class BaseApiHandler:
         *,
         method: HTTPMethod,
         url: str,
-        params: httpx.QueryParams = None,
+        params: httpx.QueryParams | dict | None = None,
         json: Any = None,
         timeout: int | None = None,
     ) -> httpx.Response:
@@ -128,7 +128,9 @@ class BaseApiHandler:
             raise exceptions.bad_response(resp)
         return resp
 
-    def _request_upload(self, *, url: str, params: dict, files: dict, data: dict, timeout: int) -> httpx.Response:
+    def _request_upload(
+        self, *, url: str, params: dict, files: httpx._types.RequestFiles, data: dict, timeout: int
+    ) -> httpx.Response:
         """Special request type for uploading files."""
         # API requests should always clear last requests metadata
         self._last_meta = None

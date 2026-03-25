@@ -164,7 +164,7 @@ class BinariesData(BaseApiHandler):
         stop=tenacity.stop_after_attempt(3),
         wait=tenacity.wait_random(min=1, max=2),
         retry=tenacity.retry_if_exception_type(httpx.TimeoutException),
-        before_sleep=tenacity.before_sleep_log(logger=logger, log_level=logging.WARNING),
+        before_sleep=tenacity.before_sleep_log(logger=logger, log_level=logging.WARNING),  # ty: ignore
         reraise=True,
     )
     def _base_upload(

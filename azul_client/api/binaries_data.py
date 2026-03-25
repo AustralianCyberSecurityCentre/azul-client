@@ -31,22 +31,42 @@ DEFAULT_MAX_BYTES_TO_READ = 10 * 1024 * 1024  # 10MB worth of strings.
 class _OpenFile:
     """A handler for a potential filepath, raw bytes or a file handle."""
 
-    def __init__(self, file_path_or_contents: IO[bytes] | bytes | str | Path | SpooledTemporaryFile | None):
+    def __init__(
+        self,
+        file_path_or_contents: IO[bytes]
+        | bytes
+        | str
+        | Path
+        | SpooledTemporaryFile
+        | None,
+    ):
         self.opened_file = False
         self.file_path_or_contents = file_path_or_contents
         self.handle: IO[bytes] | None = None
 
-    def _get_file_handle(self, file_path_or_contents: Path | str | IO[bytes] | bytes | SpooledTemporaryFile | None):
+    def _get_file_handle(
+        self,
+        file_path_or_contents: Path
+        | str
+        | IO[bytes]
+        | bytes
+        | SpooledTemporaryFile
+        | None,
+    ):
         if isinstance(file_path_or_contents, bytes):
             self.handle = BytesIO(file_path_or_contents)
         elif isinstance(file_path_or_contents, Path):
             if not file_path_or_contents.exists():
-                raise FileExistsError(f"The file with the path {file_path_or_contents=} does not exist.")
+                raise FileExistsError(
+                    f"The file with the path {file_path_or_contents=} does not exist."
+                )
             self.opened_file = True
             self.handle = file_path_or_contents.open(mode="rb")
         elif isinstance(file_path_or_contents, str):
             if not os.path.exists(file_path_or_contents):
-                raise FileExistsError(f"The file with the path {file_path_or_contents=} does not exist.")
+                raise FileExistsError(
+                    f"The file with the path {file_path_or_contents=} does not exist."
+                )
             self.handle = open(file_path_or_contents, mode="rb")
         elif isinstance(file_path_or_contents, SpooledTemporaryFile):
             self.handle = file_path_or_contents
@@ -135,7 +155,9 @@ class BinariesData(BaseApiHandler):
 
     def check_data(self, sha256: str) -> bool:
         """Check data exists for hash."""
-        return self._generic_head_request(self.cfg.azul_url + f"/api/v0/binaries/{sha256}/content")
+        return self._generic_head_request(
+            self.cfg.azul_url + f"/api/v0/binaries/{sha256}/content"
+        )
 
     def download(self, sha256: str) -> bytes:
         """Download binary with the given sha256 in cart format."""
@@ -158,7 +180,9 @@ class BinariesData(BaseApiHandler):
         stop=tenacity.stop_after_attempt(3),
         wait=tenacity.wait_random(min=1, max=2),
         retry=tenacity.retry_if_exception_type(httpx.TimeoutException),
-        before_sleep=tenacity.before_sleep_log(logger=logger, log_level=logging.WARNING),  # type: ignore logger is being mis-identified expecting LoggerProtocol
+        before_sleep=tenacity.before_sleep_log(
+            logger=logger, log_level=logging.WARNING
+        ),
         reraise=True,
     )
     def _base_upload(
@@ -166,7 +190,12 @@ class BinariesData(BaseApiHandler):
         body: dict,
         *,
         api: str,
-        file_path_or_contents: Path | str | bytes | IO[bytes] | SpooledTemporaryFile | None = None,
+        file_path_or_contents: Path
+        | str
+        | bytes
+        | IO[bytes]
+        | SpooledTemporaryFile
+        | None = None,
         augmented_streams: list[AugmentedStream] | None = None,
         filename: str | None = None,
         password: str | None = "",
@@ -220,7 +249,14 @@ class BinariesData(BaseApiHandler):
 
             with _OpenAugmentedStreams(augmented_streams) as opened_streams:
                 stream_data = [
-                    ("stream_data", (s.file_name, s.contents_file_path.open(), "application/octet-stream"))
+                    (
+                        "stream_data",
+                        (
+                            s.file_name,
+                            s.contents_file_path.open(),
+                            "application/octet-stream",
+                        ),
+                    )
                     for s in opened_streams
                 ]
                 body["stream_labels"] = [s.label for s in opened_streams]
@@ -228,10 +264,16 @@ class BinariesData(BaseApiHandler):
                 main_file = []
                 # If there is any contents.
                 if safe_file:
-                    main_file.append(("binary", (filename, safe_file, "application/octet-stream")))
+                    main_file.append(
+                        ("binary", (filename, safe_file, "application/octet-stream"))
+                    )
                 resp = self._request_upload(
                     url=self.cfg.azul_url + api,
-                    params={"refresh": refresh, "extract": extract, "password": password},
+                    params={
+                        "refresh": refresh,
+                        "extract": extract,
+                        "password": password,
+                    },
                     files=main_file + stream_data,
                     data=body,
                     timeout=self.upload_download_timeout,
@@ -265,7 +307,9 @@ class BinariesData(BaseApiHandler):
         """Upload binary handle with corresponding form data."""
         # If there are no augmented stream and the file isn't being extracted their must be a filename.
         if not augmented_streams and not extract and not filename:
-            raise ValueError("If the upload isn't an archive and you aren't uploading streams a filename is required.")
+            raise ValueError(
+                "If the upload isn't an archive and you aren't uploading streams a filename is required."
+            )
 
         if not source_id:
             raise ValueError(f"{source_id=} is required to be a valid value.")
@@ -277,7 +321,9 @@ class BinariesData(BaseApiHandler):
             timestamp = pendulum.now(pendulum.UTC).to_iso8601_string()
 
         references_string = json.dumps(references) if references else None
-        submit_settings_string = json.dumps(submit_settings) if submit_settings else None
+        submit_settings_string = (
+            json.dumps(submit_settings) if submit_settings else None
+        )
 
         return self._base_upload(
             body=dict(
@@ -364,9 +410,13 @@ class BinariesData(BaseApiHandler):
             raise ValueError(f"{parent_sha256=} must be set to a valid sha256 value.")
 
         if not relationship:
-            raise ValueError(f"{relationship=} must be a dictionary with at least one key value pair.")
+            raise ValueError(
+                f"{relationship=} must be a dictionary with at least one key value pair."
+            )
         relationship_json_dump = json.dumps(relationship) if relationship else None
-        submit_settings_json_dump = json.dumps(submit_settings) if submit_settings else None
+        submit_settings_json_dump = (
+            json.dumps(submit_settings) if submit_settings else None
+        )
 
         if not extract and not filename:
             raise ValueError("If the upload isn't an archive a filename is required.")
@@ -415,11 +465,17 @@ class BinariesData(BaseApiHandler):
         """
         return self._request(
             method=HTTPMethod.GET,
-            url=self.cfg.azul_url + f"/api/v0/binaries/{sha256}/content/{stream_sha256}",
+            url=self.cfg.azul_url
+            + f"/api/v0/binaries/{sha256}/content/{stream_sha256}",
         ).content
 
     def download_hex(
-        self, sha256, *, offset: int = 0, max_bytes_to_read: int | None = None, shortform: bool = False
+        self,
+        sha256,
+        *,
+        offset: int = 0,
+        max_bytes_to_read: int | None = None,
+        shortform: bool = False,
     ) -> models_restapi.BinaryHexView:
         """Download either all or a section of the raw hex of a file.
 
@@ -431,7 +487,11 @@ class BinariesData(BaseApiHandler):
         :param int max_bytes_to_read: bytes to read before stopping and returning what you have.
         :param bool shortform: If true, will return 16 hex bytes as a string instead of 16 strings in a list.
         """
-        params = {"offset": offset, "max_bytes_to_read": max_bytes_to_read, "shortform": shortform}
+        params = {
+            "offset": offset,
+            "max_bytes_to_read": max_bytes_to_read,
+            "shortform": shortform,
+        }
         params = self.filter_none_values(params)
 
         return self._request_with_pydantic_model_response(

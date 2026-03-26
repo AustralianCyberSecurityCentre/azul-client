@@ -7,16 +7,16 @@ class BadResponse(Exception):
     """The client received a bad http status code from the server."""
 
     def __init__(self, resp: httpx.Response, *args):
-        message = f"{resp.url} - {resp.status_code} - {resp.content}"
-        super().__init__(message, *args)
+        self.message = f"{resp.url} - {resp.status_code} - {resp.content}"
+        super().__init__(self.message, *args)
 
 
 class BadResponse404(Exception):
     """The client received a bad http status code from the server."""
 
     def __init__(self, resp: httpx.Response, *args):
-        message = f"{resp.url} - {resp.status_code} - {resp.content}"
-        super().__init__(message, *args)
+        self.message = f"{resp.url} - {resp.status_code} - {resp.content}"
+        super().__init__(self.message, *args)
 
 
 def bad_response(resp: httpx.Response) -> BadResponse | BadResponse404:

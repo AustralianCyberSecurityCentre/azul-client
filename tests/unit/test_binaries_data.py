@@ -193,7 +193,7 @@ def test_upload_neutering(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
         augmented_streams=[],
     )
     last_request = httpx_mock.get_request()
-    body = last_request.read()
+    body = last_request.read()  # type: ignore
 
     assert CART_MAGIC in body
     assert TRAC_MAGIC in body
@@ -208,7 +208,7 @@ def test_upload_neutering(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
         nonlocal file_contents
         file_contents = file
 
-    python_multipart.parse_form(last_request.headers, io.BytesIO(body), field_handler, file_handler)
+    python_multipart.parse_form(last_request.headers, io.BytesIO(body), field_handler, file_handler)  # type: ignore
 
     handle = file_contents.file_object  # type: ignore
     handle.seek(0)
@@ -238,7 +238,7 @@ def test_upload_neutering(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
         augmented_streams=[],
     )
     last_request = httpx_mock.get_request()
-    body = last_request.read()
+    body = last_request.read()  # type: ignore
     print(body)
     assert malpz.MALPZ_HEADER in body
 
@@ -256,18 +256,24 @@ def test_upload_dataless(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
         security="",
         augmented_streams=[
             binaries_data.AugmentedStream(
-                label="data1", file_name="file1.exe", contents_file_path=io.BytesIO(b"type1")
+                label="data1",  # type: ignore
+                file_name="file1.exe",
+                contents_file_path=io.BytesIO(b"type1"),
             ),
             binaries_data.AugmentedStream(
-                label="data2", file_name="file2.exe", contents_file_path=io.BytesIO(b"type2")
+                label="data2",  # type: ignore
+                file_name="file2.exe",
+                contents_file_path=io.BytesIO(b"type2"),
             ),
             binaries_data.AugmentedStream(
-                label="data3", file_name="file3.exe", contents_file_path=io.BytesIO(b"type3")
+                label="data3",  # type: ignore
+                file_name="file3.exe",
+                contents_file_path=io.BytesIO(b"type3"),
             ),
         ],
     )
     last_request = httpx_mock.get_request()
-    body = last_request.read()
+    body = last_request.read()  # type: ignore
     assert b'Content-Disposition: form-data; name="stream_data"; filename="file1.exe"\r\n' in body
     assert b'Content-Disposition: form-data; name="stream_data"; filename="file2.exe"\r\n' in body
     assert b'Content-Disposition: form-data; name="stream_data"; filename="file3.exe"\r\n' in body
@@ -319,7 +325,7 @@ def test_upload_child(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
         security="",
     )
     last_request = httpx_mock.get_request()
-    body = last_request.read()
+    body = last_request.read()  # type: ignore
     assert b'filename="child_test.txt"' in body
     assert b'Content-Disposition: form-data; name="filename"\r\n' in body
 
@@ -336,7 +342,7 @@ def test_upload_child(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
         filename="child_test.txt",
     )
     last_request = httpx_mock.get_request()
-    body = last_request.read()
+    body = last_request.read()  # type: ignore
     print(body.decode("utf-8", errors="replace"))
     assert b'Content-Disposition: form-data; name="security"\r\n\r\nOFFICIAL\r\n' in body
 
@@ -352,7 +358,7 @@ def test_upload_child(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
         security="OFFICIAL//TLP:GREEN",
         filename="child_test.txt",
     )
-    body = httpx_mock.get_request().read()
+    body = httpx_mock.get_request().read()  # type: ignore
     print(body.decode("utf-8", errors="replace"))
     assert b'Content-Disposition: form-data; name="security"\r\n\r\nOFFICIAL//TLP:GREEN\r\n' in body
 
@@ -409,7 +415,7 @@ def test_download_bulk(api: Api, httpx_mock: HTTPXMock, dummy_entity: dict):
             "52b526411070a0a92075ea7c2575f759f480f2f4788d56300091696fc7eabb71a74a5fbca04b1934e215ca00bb6b977f6069a34588caa81f622616caacbc83bf",
         ]
     )
-    body = httpx_mock.get_request().read()
+    body = httpx_mock.get_request().read()  # type: ignore
     print(body.decode("utf-8", errors="replace"))
     data = json.loads(body.decode("utf-8", errors="replace"))
     assert (
@@ -430,7 +436,7 @@ def test_get_meta(api: Api, httpx_mock: HTTPXMock, dummy_entity_meta: dict):
     api.binaries_meta.get_meta(
         "52b526411070a0a92075ea7c2575f759f480f2f4788d56300091696fc7eabb71a74a5fbca04b1934e215ca00bb6b977f6069a34588caa81f622616caacbc83bf"
     )
-    path = httpx_mock.get_request().url.path
+    path = httpx_mock.get_request().url.path  # type: ignore
     assert (
         "52b526411070a0a92075ea7c2575f759f480f2f4788d56300091696fc7eabb71a74a5fbca04b1934e215ca00bb6b977f6069a34588caa81f622616caacbc83bf"
         in path
@@ -449,10 +455,10 @@ def _setup_find_mock(api: Api, httpx_mock: HTTPXMock):
 
 def _make_find_assertions(
     httpx_mock: HTTPXMock,
-    term: str = [],
-    max_entities: int = [],
-    sort_prop: models_restapi.FindBinariesSortEnum = [],
-    sort_asc: bool = [],
+    term: str | list = [],
+    max_entities: int | list = [],
+    sort_prop: models_restapi.FindBinariesSortEnum | list = [],
+    sort_asc: bool | list = [],
 ):
     req = httpx_mock.get_requests()
     assert req[0].url.params.get_list("term") == term

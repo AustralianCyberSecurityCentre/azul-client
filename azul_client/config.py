@@ -111,6 +111,6 @@ def get_config():
     # the auth token was saved as a json string
     if conf.get("auth_token"):
         conf["auth_token"] = json.loads(conf["auth_token"])
-    config = Config(**conf)
+    config = Config.model_validate(conf)
     print(f"using Azul API at {config.azul_url}\n", file=sys.stderr)
     return config

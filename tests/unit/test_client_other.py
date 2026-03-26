@@ -13,7 +13,6 @@ from azul_client import config as mconfig
 
 class ClientTestOther(TestCase):
     def setUp(self):
-        mconfig.location = ""
         cur_api = Api(
             mconfig.Config(
                 auth_type="none",

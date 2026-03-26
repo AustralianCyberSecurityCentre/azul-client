@@ -18,7 +18,7 @@ from azul_client.api import Api
 from azul_client.config import _client_config
 from azul_client.exceptions import BadResponse, BadResponse404
 
-api: Api = None
+api: Api
 
 SECURITY_STRING_DESCRIPTION = "simple security string (use `azul security` to see available security strings)"
 TIMESTAMP_DESCRIPTION = (
@@ -48,7 +48,8 @@ def security(full: bool):
     settings = api.security.get_security_settings()
     if not full and settings.get("presets"):
         click.echo("Security Presets:")
-        click.echo("\n".join(settings.get("presets")))
+        presets: list[str] = settings.get("presets", [])
+        click.echo("\n".join(presets))
     else:
         click.echo(json.dumps(settings, indent=2))
 
@@ -108,6 +109,8 @@ def plugins_list():
     plugin_list = api.plugins.get_all_plugins()
     click.echo("Plugins (name version):")
     for p in plugin_list:
+        if not p.newest_version:
+            continue
         click.echo(f"{p.newest_version.name} {p.newest_version.version}")
 
 
@@ -124,6 +127,7 @@ def plugin_info(name: str, version: str):
             return
         except BadResponse as e:
             click.echo(f"Plugin {name} could not be found due to error {e.message}.")
+            return
         click.echo(f"Providing detail for plugin {name} {version}")
         click.echo(details.plugin.model_dump_json(indent=2))
 
@@ -134,6 +138,8 @@ def plugin_info(name: str, version: str):
         return
 
     for p in plugin_list:
+        if not p.newest_version:
+            continue
         if p.newest_version.name == name:
             click.echo(f"Providing detail for plugin {p.newest_version.name} {p.newest_version.version}")
             click.echo(p.newest_version.model_dump_json(indent=2))
@@ -190,16 +196,19 @@ def _shared_submit(
     extract: bool = False,
     extract_password: str = "",
     parent: str = "",
-    parent_rels: dict = None,
+    parent_rels: dict[str, str] | None = None,
     source: str = "",
-    source_refs: dict = None,
+    source_refs: dict | None = None,
 ):
     """Common class for submitting binaries to Azul."""
     security = security if security else ""
     if not timestamp:
         timestamp = pendulum.now(pendulum.UTC).to_iso8601_string()
     else:
-        timestamp = pendulum.parse(timestamp).to_iso8601_string()
+        timestamp_datetime = pendulum.parse(timestamp)
+        if not isinstance(timestamp_datetime, DateTime):
+            raise ValueError(f"Provided datetime {timestamp} is not in a valid format.")
+        timestamp = timestamp_datetime.to_iso8601_string()
 
     raw_input_files = _walk_files_in_path(path)
 
@@ -237,6 +246,10 @@ def _shared_submit(
     for fullpath, filepath in input_files:
         with open(fullpath, "rb") as f:
             if parent:
+                if parent_rels is None:
+                    raise ValueError(
+                        f"{parent_rels=} must be a dictionary with at least one key value pair for uploading a child binary."
+                    )
                 resp = api.binaries_data.upload_child(
                     f,
                     parent_sha256=parent,
@@ -481,10 +494,7 @@ def get(output: str, term: str, max: int, sort_by: models_restapi.FindBinariesSo
         click.echo(f"saving output to folder {output}")
     else:
         click.echo("no output folder provided, skip download")
-
-    params = {"term": term, "max_entities": max, "sort_prop": sort_by, "sort_asc": sort_asc}
-    kwargs = {x: y for (x, y) in params.items() if y is not None}
-    entity = api.binaries_meta.find(**kwargs)
+    entity = api.binaries_meta.find(term=term, max_entities=max, sort_prop=sort_by, sort_asc=sort_asc)
 
     # create output folder
     if output:
@@ -498,7 +508,7 @@ def get(output: str, term: str, max: int, sort_by: models_restapi.FindBinariesSo
     # print and save found binary
     for hit in entity.items:
         click.echo(hit.sha256)
-        if output:
+        if output and hit.sha256:
             content = api.binaries_data.download(hit.sha256)
             if content:
                 with open(os.path.join(output, f"{hit.sha256}.cart"), "wb") as f:

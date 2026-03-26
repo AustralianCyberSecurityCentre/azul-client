@@ -22,7 +22,6 @@ test_folder = os.path.join(os.path.dirname(__file__), "data")
 @pytest.fixture
 def api() -> Api:
     """Fixture container the initialised api."""
-    mconfig.location = ""
     cur_api = Api(
         mconfig.Config(
             auth_type="none",
@@ -423,10 +422,10 @@ def _setup_find_mock(api: Api, httpx_mock: HTTPXMock):
 
 def _make_find_assertions(
     httpx_mock: HTTPXMock,
-    term: str = [],
-    max_entities: int = [],
-    sort_prop: models_restapi.FindBinariesSortEnum = [],
-    sort_asc: bool = [],
+    term: str | list = [],
+    max_entities: int | list = [],
+    sort_prop: models_restapi.FindBinariesSortEnum | list = [],
+    sort_asc: bool | list = [],
 ):
     req = httpx_mock.get_requests()
     assert req[0].url.params.get_list("term") == term

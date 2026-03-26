@@ -1,5 +1,5 @@
 import time
-import urllib
+from urllib import parse
 from unittest import mock
 
 import pytest
@@ -16,7 +16,6 @@ OIDC_URL = "http://localhost:8123"
 @pytest.fixture
 def api_service_api() -> Api:
     """Fixture container the initialised api."""
-    mconfig.location = ""
     cur_api = Api(
         mconfig.Config(
             auth_type="service",
@@ -53,7 +52,7 @@ def test_via_service_token(api_service_api: Api, httpx_mock: HTTPXMock):
 
     last_request = httpx_mock.get_requests()[-1]
     data = last_request.read()
-    parsed_content = urllib.parse.parse_qs(data.decode())
+    parsed_content = parse.parse_qs(data.decode())
     assert "me give access" == token["access_token"]
     assert "client_credentials" == parsed_content["grant_type"][0]
     assert "secrot" == parsed_content["client_secret"][0]
@@ -63,7 +62,6 @@ def test_via_service_token(api_service_api: Api, httpx_mock: HTTPXMock):
 @pytest.fixture
 def api_code_ex_api() -> Api:
     """Fixture container the initialised api."""
-    mconfig.location = ""
     cur_api = Api(
         mconfig.Config(
             auth_type="callback",
@@ -98,7 +96,7 @@ def test_via_code_callback(api_code_ex_api: Api, httpx_mock: HTTPXMock):
 
     last_request = httpx_mock.get_requests()[-1]
     data = last_request.read()
-    parsed_content = urllib.parse.parse_qs(data.decode())
+    parsed_content = parse.parse_qs(data.decode())
     assert jwt == token["access_token"]
     assert "authorization_code" == parsed_content["grant_type"][0]
     assert "me" == parsed_content["client_id"][0]
@@ -106,7 +104,6 @@ def test_via_code_callback(api_code_ex_api: Api, httpx_mock: HTTPXMock):
 
 @pytest.fixture
 def oidc_svc_callback() -> OIDC:
-    mconfig.location = ""
     return OIDC(
         Config(
             auth_type="callback",
@@ -135,13 +132,13 @@ def test_get_token(vr: mock.MagicMock, vcc: mock.MagicMock, oidc_svc_callback: O
     assert 1 == vcc.call_count
     assert 0 == vr.call_count
     # check that refresh token is used
-    oidc_svc_callback.cfg.auth_token_time = time.time() - 60
+    oidc_svc_callback.cfg.auth_token_time = int(time.time() - 60)
     assert "refreshed_token" == oidc_svc_callback._get_access_token()
     assert 1 == vcc.call_count
     assert 1 == vr.call_count
     # pretend that refresh token expired, so full auth required
     vr.return_value = None
-    oidc_svc_callback.cfg.auth_token_time = time.time() - 600
+    oidc_svc_callback.cfg.auth_token_time = int(time.time() - 600)
     assert "token" == oidc_svc_callback._get_access_token()
     assert 2 == vcc.call_count
     assert 2 == vr.call_count
@@ -173,20 +170,20 @@ def test_get_token_errors(vcc: mock.MagicMock, oidc_svc_callback: OIDC, httpx_mo
     httpx_mock.add_response(
         method="POST",
         url=endpt + "/token",
-        content="refresh token expired",
+        content=b"refresh token expired",
         headers={"content-type": "application/json; blarg"},
         status_code=400,
     )
-    oidc_svc_callback.cfg.auth_token_time = time.time() - 60
+    oidc_svc_callback.cfg.auth_token_time = int(time.time() - 60)
     assert "redo_token" == oidc_svc_callback._get_access_token()
 
     vcc.return_value = {"access_token": "redo_token2", "refresh_token": "invalid"}
     httpx_mock.add_response(
         method="POST",
         url=endpt + "/token",
-        content="refresh token expired",
+        content=b"refresh token expired",
         headers={"content-type": "application/json; blarg"},
         status_code=401,
     )
-    oidc_svc_callback.cfg.auth_token_time = time.time() - 60
+    oidc_svc_callback.cfg.auth_token_time = int(time.time() - 60)
     assert "redo_token2" == oidc_svc_callback._get_access_token()

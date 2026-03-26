@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass
 from http import HTTPMethod
-from typing import Callable, Generator
+from typing import Callable, Generator, Iterator
 
 import httpx
 import pendulum
@@ -132,7 +132,9 @@ class FindOptions:
             return
 
         # Convert to a list if required.
-        if isinstance(value, str) or isinstance(value, int):
+        if isinstance(value, str):
+            value = [value]
+        if isinstance(value, int):
             value = [value]
 
         for i, val in enumerate(value):
@@ -307,8 +309,8 @@ class BinariesMeta(BaseApiHandler):
     class FindAll:
         """Result of a find_all query, with iterator to look at each binary."""
 
+        iter: Iterator[models_restapi.EntityFindSimpleItem]
         approx_total: int = 0
-        iter: Generator[models_restapi.EntityFindSimpleItem, None, None] = None
 
         def __iter__(self):
             """Iterator over the default iterator of iter."""
@@ -339,7 +341,9 @@ class BinariesMeta(BaseApiHandler):
             get_data_only=True,
         )
 
-        def _iterate_binaries(params: dict, resp: models_restapi.EntityFindSimple):
+        def _iterate_binaries(
+            params: dict, resp: models_restapi.EntityFindSimple
+        ) -> Generator[models_restapi.EntityFindSimpleItem, None, None]:
             """Iterate over the found binaries."""
             after = resp.after
             found = 0
@@ -353,7 +357,7 @@ class BinariesMeta(BaseApiHandler):
                     if max_binaries and found >= max_binaries:
                         # quit even if we have more than requested that we can supply
                         return
-                resp: models_restapi.EntityFindSimple = self._request_with_pydantic_model_response(
+                resp = self._request_with_pydantic_model_response(
                     method=HTTPMethod.POST,
                     url=self.cfg.azul_url + "/api/v0/binaries/all",
                     params=params,
@@ -462,7 +466,7 @@ class BinariesMeta(BaseApiHandler):
 
     def create_tag_on_binary(self, sha256: str, tag: str, security: str) -> None:
         """Attach a tag to the provided binaries sha256."""
-        return self._request(
+        self._request(
             method=HTTPMethod.POST,
             url=self.cfg.azul_url + f"/api/v0/binaries/{sha256}/tags/{tag}",
             json={"security": security},

@@ -24,21 +24,25 @@ from azul_bedrock import models_restapi
 from azul_client import exceptions
 from azul_client.api.base_api import BaseApiHandler
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 DEFAULT_MAX_BYTES_TO_READ = 10 * 1024 * 1024  # 10MB worth of strings.
 
 
 class _OpenFile:
     """A handler for a potential filepath, raw bytes or a file handle."""
 
-    handle: IO[bytes] | None
-
-    def __init__(self, file_path_or_contents: IO[bytes] | bytes | str | Path):
+    def __init__(
+        self,
+        file_path_or_contents: IO[bytes] | bytes | str | Path | SpooledTemporaryFile | None,
+    ):
         self.opened_file = False
         self.file_path_or_contents = file_path_or_contents
-        self.handle = None
+        self.handle: IO[bytes] | None = None
 
-    def _get_file_handle(self, file_path_or_contents: Path | str | IO[bytes] | bytes):
+    def _get_file_handle(
+        self,
+        file_path_or_contents: Path | str | IO[bytes] | bytes | SpooledTemporaryFile | None,
+    ):
         if isinstance(file_path_or_contents, bytes):
             self.handle = BytesIO(file_path_or_contents)
         elif isinstance(file_path_or_contents, Path):
@@ -52,11 +56,15 @@ class _OpenFile:
             self.handle = open(file_path_or_contents, mode="rb")
         elif isinstance(file_path_or_contents, SpooledTemporaryFile):
             self.handle = file_path_or_contents
+        elif isinstance(file_path_or_contents, bytearray):
+            self.handle = BytesIO(file_path_or_contents)
+        elif isinstance(file_path_or_contents, memoryview):
+            self.handle = BytesIO(file_path_or_contents)
         else:
             # Will already be IO[bytes]
             self.handle = file_path_or_contents
 
-    def open(self) -> IO[bytes]:
+    def open(self) -> IO[bytes] | None:
         """Open or provide the handle to a file."""
         self._get_file_handle(self.file_path_or_contents)
         return self.handle
@@ -65,7 +73,7 @@ class _OpenFile:
         """If a file was opened close it."""
         if self.opened_file:
             try:
-                if self.handle.closed:
+                if self.handle and self.handle.closed:
                     self.handle.close()
             except Exception:
                 print("Failed to close a file.")
@@ -106,7 +114,10 @@ class _OpenAugmentedStreams:
     def __enter__(self):
         for stream in self._in_streams:
             # Open the file or contents
-            open_file = _OpenFile(stream.contents_file_path)
+            if isinstance(stream.contents_file_path, _OpenFile):
+                open_file = stream.contents_file_path
+            else:
+                open_file = _OpenFile(stream.contents_file_path)
             self.file_handles.append(open_file)
             # Make a new augmented stream object with the file or contents.
             stream_copy = copy.copy(stream)
@@ -153,7 +164,7 @@ class BinariesData(BaseApiHandler):
         stop=tenacity.stop_after_attempt(3),
         wait=tenacity.wait_random(min=1, max=2),
         retry=tenacity.retry_if_exception_type(httpx.TimeoutException),
-        before_sleep=tenacity.before_sleep_log(logger, logging.WARNING),
+        before_sleep=tenacity.before_sleep_log(logger=logger, log_level=logging.WARNING),  # ty: ignore
         reraise=True,
     )
     def _base_upload(
@@ -164,7 +175,7 @@ class BinariesData(BaseApiHandler):
         file_path_or_contents: Path | str | bytes | IO[bytes] | SpooledTemporaryFile | None = None,
         augmented_streams: list[AugmentedStream] | None = None,
         filename: str | None = None,
-        password: str = "",
+        password: str | None = "",
         extract: bool = False,
         refresh: bool = False,
     ) -> models_restapi.BinaryData:
@@ -201,7 +212,7 @@ class BinariesData(BaseApiHandler):
                     safe_file = SpooledTemporaryFile(max_size=1000 * 1000)
                     try:
                         print("Packing file as a .CaRT...")
-                        cart.pack_stream(file_handle, safe_file)
+                        cart.pack_stream(file_handle, safe_file)  # type: ignore
                         print("CaRT size:", safe_file.tell())
                         safe_file.seek(0)
                     except BaseException:
@@ -215,7 +226,14 @@ class BinariesData(BaseApiHandler):
 
             with _OpenAugmentedStreams(augmented_streams) as opened_streams:
                 stream_data = [
-                    ("stream_data", (s.file_name, s.contents_file_path.open(), "application/octet-stream"))
+                    (
+                        "stream_data",
+                        (
+                            s.file_name,
+                            s.contents_file_path.open(),
+                            "application/octet-stream",
+                        ),
+                    )
                     for s in opened_streams
                 ]
                 body["stream_labels"] = [s.label for s in opened_streams]
@@ -226,7 +244,11 @@ class BinariesData(BaseApiHandler):
                     main_file.append(("binary", (filename, safe_file, "application/octet-stream")))
                 resp = self._request_upload(
                     url=self.cfg.azul_url + api,
-                    params={"refresh": refresh, "extract": extract, "password": password},
+                    params={
+                        "refresh": refresh,
+                        "extract": extract,
+                        "password": password,
+                    },
                     files=main_file + stream_data,
                     data=body,
                     timeout=self.upload_download_timeout,
@@ -254,7 +276,7 @@ class BinariesData(BaseApiHandler):
         extract: bool = False,
         password: str | None = None,
         refresh: bool = False,
-        exclude_security_labels: list[str] = None,
+        exclude_security_labels: list[str] | None = None,
         include_queries: bool = False,
     ) -> models_restapi.BinaryData:
         """Upload binary handle with corresponding form data."""
@@ -271,14 +293,14 @@ class BinariesData(BaseApiHandler):
         if not timestamp:
             timestamp = pendulum.now(pendulum.UTC).to_iso8601_string()
 
-        references = json.dumps(references) if references else None
-        submit_settings = json.dumps(submit_settings) if submit_settings else None
+        references_string = json.dumps(references) if references else None
+        submit_settings_string = json.dumps(submit_settings) if submit_settings else None
 
         return self._base_upload(
             body=dict(
                 source_id=source_id,
-                references=references,
-                settings=submit_settings,
+                references=references_string,
+                settings=submit_settings_string,
                 timestamp=timestamp,
                 security=security,
                 exclude_security_labels=exclude_security_labels,
@@ -305,7 +327,7 @@ class BinariesData(BaseApiHandler):
         timestamp: str | None = None,
         security: str,
         refresh: bool = False,
-        exclude_security_labels: list[str] = None,
+        exclude_security_labels: list[str] | None = None,
         include_queries: bool = False,
     ) -> models_restapi.BinaryData:
         """Upload new metadata and potentially alt-streams for a binary."""
@@ -318,13 +340,13 @@ class BinariesData(BaseApiHandler):
         if not timestamp:
             timestamp = pendulum.now(pendulum.UTC).to_iso8601_string()
 
-        references = json.dumps(references) if references else None
+        references_parsed = json.dumps(references) if references else None
 
         return self._base_upload(
             body=dict(
                 sha256=binary_id,
                 source_id=source_id,
-                references=references,
+                references=references_parsed,
                 timestamp=timestamp,
                 security=security,
                 exclude_security_labels=exclude_security_labels,
@@ -351,7 +373,7 @@ class BinariesData(BaseApiHandler):
         extract: bool = False,
         password: str | None = None,
         refresh: bool = False,
-        exclude_security_labels: list[str] = None,
+        exclude_security_labels: list[str] | None = None,
         include_queries: bool = False,
     ) -> models_restapi.BinaryData:
         """Upload a child binary and attach it to the parent binary with the provided sha256 ID."""
@@ -360,8 +382,8 @@ class BinariesData(BaseApiHandler):
 
         if not relationship:
             raise ValueError(f"{relationship=} must be a dictionary with at least one key value pair.")
-        relationship = json.dumps(relationship) if relationship else None
-        submit_settings = json.dumps(submit_settings) if submit_settings else None
+        relationship_json_dump = json.dumps(relationship) if relationship else None
+        submit_settings_json_dump = json.dumps(submit_settings) if submit_settings else None
 
         if not extract and not filename:
             raise ValueError("If the upload isn't an archive a filename is required.")
@@ -378,8 +400,8 @@ class BinariesData(BaseApiHandler):
                 security=security,
                 exclude_security_labels=exclude_security_labels,
                 include_queries=include_queries,
-                relationship=relationship,
-                settings=submit_settings,
+                relationship=relationship_json_dump,
+                settings=submit_settings_json_dump,
                 parent_type=parent_type,
                 parent_sha256=parent_sha256,
                 filename=filename,
@@ -414,7 +436,12 @@ class BinariesData(BaseApiHandler):
         ).content
 
     def download_hex(
-        self, sha256, *, offset: int = 0, max_bytes_to_read: int | None = None, shortform: bool = False
+        self,
+        sha256,
+        *,
+        offset: int = 0,
+        max_bytes_to_read: int | None = None,
+        shortform: bool = False,
     ) -> models_restapi.BinaryHexView:
         """Download either all or a section of the raw hex of a file.
 
@@ -426,7 +453,11 @@ class BinariesData(BaseApiHandler):
         :param int max_bytes_to_read: bytes to read before stopping and returning what you have.
         :param bool shortform: If true, will return 16 hex bytes as a string instead of 16 strings in a list.
         """
-        params = {"offset": offset, "max_bytes_to_read": max_bytes_to_read, "shortform": shortform}
+        params = {
+            "offset": offset,
+            "max_bytes_to_read": max_bytes_to_read,
+            "shortform": shortform,
+        }
         params = self.filter_none_values(params)
 
         return self._request_with_pydantic_model_response(

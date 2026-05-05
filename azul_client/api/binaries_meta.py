@@ -430,11 +430,11 @@ class BinariesMeta(BaseApiHandler):
             get_data_only=True,
         )
 
-    def get_similar_entities(self, sha256: str, *, recalculate: bool = False) -> models_restapi.SimilarMatch:
+    def get_similar_feature_entities(self, sha256: str, *, recalculate: bool = False) -> models_restapi.SimilarMatch:
         """Return information about similar entities."""
         return self._request_with_pydantic_model_response(
             method=HTTPMethod.GET,
-            url=self.cfg.azul_url + f"/api/v0/binaries/{sha256}/similar",
+            url=self.cfg.azul_url + f"/api/v0/binaries/{sha256}/similar/features",
             response_model=models_restapi.SimilarMatch,
             params={"recalculate": recalculate},
             get_data_only=True,

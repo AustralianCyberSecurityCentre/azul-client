@@ -155,7 +155,7 @@ class TestBinaryMetaOther(BaseApiTest):
     def test_get_similar_feature_entities(self):
         first = self.sha256s[0]
         similar_entities = self.api.binaries_meta.get_similar_feature_entities(first)
-        self.assertIsInstance(similar_entities, models_restapi.SimilarMatch)
+        self.assertIsInstance(similar_entities, models_restapi.SimilarFeatureMatch)
 
     def test_get_nearby_entities(self):
         first = self.sha256s[0]

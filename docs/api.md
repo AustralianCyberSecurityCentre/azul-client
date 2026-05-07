@@ -23,7 +23,7 @@ Table created on 28/05/2025
 | GET    | get_has_newer_metadata                     | /api/v0/binaries/\{sha256\}/new                      | Get Has Newer Metadata                 |
 | GET    | get_similar_tlsh_entities                  | /api/v0/binaries/similar/tlsh                        | Get Similar Tlsh Entities              |
 | GET    | get_similar_ssdeep_entities                | /api/v0/binaries/similar/ssdeep                      | Get Similar Ssdeep Entities            |
-| GET    | get_similar_entities                       | /api/v0/binaries/\{sha256\}/similar                  | Get Similar Entities                   |
+| GET    | get_similar_feature_entities               | /api/v0/binaries/\{sha256\}/similar/features         | Get Similar Feature Entities           |
 | GET    | get_nearby_entities                        | /api/v0/binaries/\{sha256\}/nearby                   | Get Nearby Entities                    |
 | GET    | get_binary_tags                            | /api/v0/binaries/\{sha256\}/tags                     | Get Entity Tags                        |
 | POST   | create_tag_on_binary                       | /api/v0/binaries/\{sha256\}/tags/\{tag\}             | Create Tag On Entity                   |

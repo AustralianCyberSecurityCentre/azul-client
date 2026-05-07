@@ -24,7 +24,7 @@ classifiers=[
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "azul-bedrock>=9.0.32",
+    "azul-bedrock>=11.0.32",
     "cart>=1.2.3",
     "click>=8.3.1",
     "filelock>=3.20.3",
@@ -47,7 +47,7 @@ Repository = "https://github.com/AustralianCyberSecurityCentre/azul-client"
 [tool.uv]
 package = true
 exclude-newer = "1 week"
-exclude-newer-package = { azul-bedrock = false, azul-runner = false, azul-security=false, azul-metastore = false, azul-nsrl-lookup-serve=false, azul-nsrl-lookup-server=false, azul-plugin-retrohunt = false }
+exclude-newer-package = { azul-bedrock = false, azul-runner = false, azul-security=false, azul-metastore = false, azul-nsrl-lookup-serve=false, azul-nsrl-lookup-server=false, azul-plugin-retrohunt = false, malpz=false }
 
 [tool.uv.sources]
 azul-bedrock = { index="cache"}
@@ -56,6 +56,7 @@ azul-metastore = { index="cache"}
 azul-security = { index="cache"}
 azul-nsrl-lookup-server = { index="cache"}
 azul-plugin-retrohunt = { index="cache" }
+malpz = { index="cache" }
 
 [[tool.uv.index]]
 name = "pypi"

@@ -152,10 +152,10 @@ class TestBinaryMetaOther(BaseApiTest):
         resp = self.api.binaries_meta.get_similar_tlsh_entities(tlsh=first_binary_tlsh)
         self.assertGreater(len(resp.matches), 1)
 
-    def test_get_similar_entities(self):
+    def test_get_similar_feature_entities(self):
         first = self.sha256s[0]
-        similar_entities = self.api.binaries_meta.get_similar_entities(first)
-        self.assertIsInstance(similar_entities, models_restapi.SimilarMatch)
+        similar_entities = self.api.binaries_meta.get_similar_feature_entities(first)
+        self.assertIsInstance(similar_entities, models_restapi.SimilarFeatureMatch)
 
     def test_get_nearby_entities(self):
         first = self.sha256s[0]

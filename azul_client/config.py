@@ -11,6 +11,8 @@ import pydantic
 from filelock import FileLock
 from pydantic_settings import BaseSettings
 
+from azul_client.shared import FULL_INFO, ExamplesCommand, with_examples
+
 config_section = "default"
 
 
@@ -75,7 +77,8 @@ class Config(BaseSettings):
             cfg.write(configfile)
 
 
-@_client_config.command()
+@_client_config.command(cls=ExamplesCommand)
+@with_examples("$ azul config clear-auth")
 @_lock_azul_config
 def clear_auth():
     """Reset current auth information."""
@@ -83,6 +86,31 @@ def clear_auth():
     conf.auth_token = {}  # noqa S105
     conf.auth_token_time = 0
     conf.save()
+
+
+@_client_config.command(cls=ExamplesCommand)
+@with_examples(
+    "$ azul config view-auth",
+    "$ azul config view-auth --full",
+)
+@_lock_azul_config
+@click.option("--full", is_flag=True, show_default=True, default=False, help=FULL_INFO)
+def view_auth(full: bool):
+    """View current auth information."""
+    conf = get_config()
+
+    if full:
+        click.echo(json.dumps(conf.__dict__, indent=2))
+        return
+
+    click.echo("Loaded config (truncated)")
+    click.echo(f"  Azul URL: {conf.azul_url}")
+    click.echo(f"  Verify SSL: {conf.azul_verify_ssl}")
+    click.echo("  Authorisation")
+    click.echo(f"    Type: {conf.auth_type}")
+    click.echo(f"    Scopes: {conf.auth_scopes}")
+    click.echo(f"    Client ID: {conf.auth_client_id}")
+    click.echo(f"    Client secret: {conf.auth_client_secret}")
 
 
 @_lock_azul_config

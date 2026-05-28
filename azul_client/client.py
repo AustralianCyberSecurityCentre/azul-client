@@ -17,13 +17,19 @@ from azul_client import config
 from azul_client.api import Api
 from azul_client.config import _client_config
 from azul_client.exceptions import BadResponse, BadResponse404
+from azul_client.shared import (
+    EXTRACT_DESCRIPTION,
+    EXTRACT_PASSWORD_DESCRIPTION,
+    FULL_INFO,
+    NO_CONFIRMATION_PROMPT,
+    REFERENCES,
+    SECURITY_STRING_DESCRIPTION,
+    TIMESTAMP_DESCRIPTION,
+    ExamplesCommand,
+    with_examples,
+)
 
 api: Api
-
-SECURITY_STRING_DESCRIPTION = "simple security string (use `azul security` to see available security strings)"
-TIMESTAMP_DESCRIPTION = (
-    "timestamp for which the file being submitted was sourced in ISO8601 format e.g 2025-05-26T02:11:44Z"
-)
 
 
 @click.group()
@@ -41,8 +47,13 @@ def binaries():
     pass
 
 
-@click.command(name="security")
-@click.option("--full", is_flag=True, show_default=True, default=False, help="show full configuration")
+# azul security
+@click.command(name="security", cls=ExamplesCommand)
+@with_examples(
+    "$ azul security",
+    "$ azul security --full",
+)
+@click.option("--full", is_flag=True, show_default=True, default=False, help=FULL_INFO)
 def security(full: bool):
     """List Azul security classification settings."""
     settings = api.security.get_security_settings()
@@ -60,7 +71,9 @@ def sources():
     pass
 
 
-@sources.command(name="list")
+# azul sources list
+@sources.command(name="list", cls=ExamplesCommand)
+@with_examples("$ azul sources list")
 def sources_list():
     """List all of the source ids."""
     all_sources = api.sources.get_all_sources()
@@ -68,7 +81,9 @@ def sources_list():
     click.echo("\n".join(all_sources.keys()))
 
 
-@sources.command(name="full")
+# azul sources full
+@sources.command(name="full", cls=ExamplesCommand)
+@with_examples("$ azul sources full")
 def sources_full():
     """Get the full source information for each source."""
     all_sources = api.sources.get_all_sources()
@@ -79,7 +94,9 @@ def sources_full():
     click.echo(json.dumps(all_sources_dumped, indent=2))
 
 
-@sources.command(name="info")
+# azul sources info
+@sources.command(name="info", cls=ExamplesCommand)
+@with_examples("$ azul sources info")
 @click.argument("source")
 def sources_info(source: str):
     """Get summary information about a specific SOURCE by source Id."""
@@ -93,7 +110,7 @@ def sources_info(source: str):
             for ref in sourceObj.references:
                 click.echo(f"  name: '{ref.name}'")
                 click.echo(f"  description: '{ref.description}'")
-                click.echo(f"  required: '{ref.required}'")
+                click.echo(f"  required: '{ref.required}'\n")
             break
 
 
@@ -103,7 +120,9 @@ def plugins():
     pass
 
 
-@plugins.command(name="list")
+# azul plugins list
+@plugins.command(name="list", cls=ExamplesCommand)
+@with_examples("$ azul plugins list")
 def plugins_list():
     """List all of the plugins registered in Azul."""
     plugin_list = api.plugins.get_all_plugins()
@@ -114,11 +133,22 @@ def plugins_list():
         click.echo(f"{p.newest_version.name} {p.newest_version.version}")
 
 
-@plugins.command(name="info")
+# azul plugins info
+@plugins.command(name="info", cls=ExamplesCommand)
+@with_examples(
+    "$ azul plugins info Cape",
+    "$ azul plugins info RtfInfo",
+    "$ azul plugins info RetrohuntIngestor",
+)
 @click.argument("name")
 @click.option("--version", type=str, help="version of the plugin to get info for (defaults to newest)")
 def plugin_info(name: str, version: str):
-    """Get the details of a plugin with the provided plugin name."""
+    """Get the details of a plugin with the provided plugin name.
+
+    Plugins list can be viewed with $ azul plugins list.
+
+    Please note: Plugin names ARE case-sensitive.
+    """
     if version:
         try:
             details = api.plugins.get_plugin(name, version)
@@ -147,10 +177,15 @@ def plugin_info(name: str, version: str):
     click.echo(f"Plugin {name} could not be found, check the name is valid.")
 
 
-@binaries.command()
+# azul binaries check
+@binaries.command(cls=ExamplesCommand)
+@with_examples(
+    "$ azul binaries check <SHA256>",
+    "$ azul b check <SHA256>",
+)
 @click.argument("sha256")
 def check(sha256: str):
-    """Check if binary metadata associated with the provided SHA256 is in Azul or not."""
+    """Check if the binary metadata for a SHA256 is in Azul or not."""
     if api.binaries_meta.check_meta(sha256):
         click.echo("Binary metadata available")
     else:
@@ -158,10 +193,15 @@ def check(sha256: str):
         sys.exit(1)
 
 
-@binaries.command()
+# azul binaries check-data
+@binaries.command(cls=ExamplesCommand)
+@with_examples(
+    "$ azul binaries check-data <SHA256>",
+    "$ azul b check-data <SHA256>",
+)
 @click.argument("sha256")
 def check_data(sha256: str):
-    """Check if a binary in Azul has the original file stored in Azul for the provided SHA256."""
+    """Check if the binary for a SHA256 is in Azul or not."""
     if api.binaries_data.check_data(sha256):
         click.echo("Binary data available")
     else:
@@ -296,9 +336,21 @@ def _print_model(model: BaseModel, pretty: bool):
         click.echo(model.model_dump_json(indent=4))
 
 
-@binaries.command()
+# azul binaries put-child
+@binaries.command(cls=ExamplesCommand)
+@with_examples(
+    '$ azul b put-child payload_exe --parent <SHA256> --security OFFICIAL --relationship "actions:downloads"',
+    "",
+    '$ azul b put-child payload_exe --parent <SHA256> --security OFFICIAL --relationship "actions:downloads" --timestamp 2021-12-21T11:11:11Z',
+    "",
+    '$ azul b put-child payload_exe --parent <SHA256> --security OFFICIAL --relationship "actions:downloads" --extract',
+    "",
+    '$ azul b put-child payload_exe --parent <SHA256> --security OFFICIAL --relationship "actions:downloads" --extract --extract-password infected',
+    "",
+    '$ azul b put-child payload_exe --parent <SHA256> --security OFFICIAL --relationship "actions:downloads" --relationship "to:C:/<location>" --relationship "from:bad[.]domain/malwares[.]exe"',
+)
 @click.argument("path")
-@click.option("-y", is_flag=True, show_default=True, default=False, help="no confirmation prompt")
+@click.option("-y", is_flag=True, show_default=True, default=False, help=NO_CONFIRMATION_PROMPT)
 @click.option("--timestamp", type=str, help=TIMESTAMP_DESCRIPTION)
 @click.option("--security", required=True, type=str, help=SECURITY_STRING_DESCRIPTION)
 @click.option("--parent", required=True, type=str, help="SHA256 of parent file")
@@ -308,8 +360,11 @@ def _print_model(model: BaseModel, pretty: bool):
     required=True,
     multiple=True,
     type=str,
-    help="""relationship information between the uploaded child and the parent in form key:value e.g:
-    azul put-child --relationship action:extracted --relationship relationship:friend
+    metavar="KEY:VALUE",
+    help="""
+    Details of the relationship between the child and parent samples.
+    All relationships aside from "action" show the supplied key in the UI.
+    Multiple relationship flags can be supplied.
     """,
 )
 @click.option(
@@ -317,9 +372,9 @@ def _print_model(model: BaseModel, pretty: bool):
     is_flag=True,
     show_default=True,
     default=False,
-    help="extract the provided child file (must be trusted archive)",
+    help=EXTRACT_DESCRIPTION,
 )
-@click.option("--extract-password", type=str, help="password to use when extracting the child archive")
+@click.option("--extract-password", type=str, help=EXTRACT_PASSWORD_DESCRIPTION)
 def put_child(
     y: bool,
     path: str,
@@ -330,7 +385,12 @@ def put_child(
     extract: bool,
     extract_password: str,
 ):
-    """Uploads a binary from PATH as a child of a pre-existing parent binary."""
+    """Uploads all files in PATH to Azul as CHILD of SHA256.
+
+    PATH is the location of the file/files/directory.
+
+    A PARENT, RELATIONSHIP, and SECURITY are required for all files.
+    """
     parsed_relationships = [r.split(":", 1) for r in relationship]
     relation_dict = {item[0]: item[1] for item in parsed_relationships}
     _shared_submit(
@@ -345,17 +405,35 @@ def put_child(
     )
 
 
-@binaries.command()
-@click.option("-y", is_flag=True, show_default=True, default=False, help="no confirmation prompt")
+# azul binaries put
+@binaries.command(cls=ExamplesCommand)
+@with_examples(
+    '$ azul b put malware_dll <SOURCE> --security OFFICIAL --ref "description:malware desc"',
+    "",
+    '$ azul b put samples/ <SOURCE> --security OFFICIAL --ref "description:bulk malware samples"',
+    "",
+    '$ azul b put malware_dll <SOURCE> --security OFFICIAL --ref "description:malware desc" --timestamp 2012-12-21T11:11:11Z',
+    "",
+    '$ azul b put malware_dll.zip <SOURCE> --security OFFICIAL --ref "description:malware desc" --extract',
+    "",
+    '$ azul b put malware_dll.zip <SOURCE> --security OFFICIAL --ref "description:malware desc" --extract-password infected',
+    "",
+    '$ azul b put malware_dll.zip <SOURCE> --security OFFICIAL --ref "description:malware desc" --extract --extract-password infected --timestamp 2012-12-21T11:11:11Z',
+)
 @click.argument("path")
 @click.argument("source")
+@click.option("-y", is_flag=True, show_default=True, default=False, help=NO_CONFIRMATION_PROMPT)
 @click.option(
-    "--ref", type=str, multiple=True, help="references for source. e.g. --ref user:llama --ref location:ocean"
+    "--ref",
+    type=str,
+    multiple=True,
+    metavar="KEY:VALUE",
+    help=REFERENCES,
 )
 @click.option("--timestamp", type=str, help=TIMESTAMP_DESCRIPTION)
 @click.option("--security", required=True, type=str, help=SECURITY_STRING_DESCRIPTION)
-@click.option("--extract", is_flag=True, show_default=True, default=False, help="submitted files are trusted archives")
-@click.option("--extract-password", type=str, help="password for trusted archive to be extracted with")
+@click.option("--extract", is_flag=True, show_default=True, default=False, help=EXTRACT_DESCRIPTION)
+@click.option("--extract-password", type=str, help=EXTRACT_PASSWORD_DESCRIPTION)
 def put(
     y: bool,
     path: str,
@@ -366,7 +444,16 @@ def put(
     extract: bool,
     extract_password: str,
 ):
-    """Upload all files in PATH to Azul SOURCE."""
+    """Upload all files in PATH to Azul with the specified SOURCE.
+
+    PATH is the location of the file/files/directory.
+
+    SOURCE is the ID of the source to upload the file to.
+    SOURCEs can be seen with $ azul sources list.
+
+    A description is required on most uploads, as such, --ref description:text is a soft-requirement.
+    You can (& should) have multiple --ref arguments.
+    """
     split_refs = [x.split(":", 1) for x in ref]
     refs = {x[0]: x[1] for x in split_refs}
     _shared_submit(
@@ -381,17 +468,31 @@ def put(
     )
 
 
-@binaries.command()
+# azul binaries put-stdin
+@binaries.command(cls=ExamplesCommand)
+@with_examples(
+    "$ cat sample_exe | azul b put-stdin <FILENAME> <SOURCE> --security OFFICIAL",
+    "",
+    '$ cat sample | azul b put-stdin sample_exe <SOURCE> --security OFFICIAL --ref "description:malware desc"',
+    "",
+    '$ cat sample | azul b put-stdin sample_exe <SOURCE> --security OFFICIAL --ref "description:malware desc" --timestamp 2012-12-12T11:11:11Z',
+    "",
+    '$ cat sample | azul b put-stdin sample_exe <SOURCE> --security OFFICIAL --ref "description:malware desc" --timestamp 2012-12-12T11:11:11Z',
+)
 @click.argument("filename")
 @click.argument("source")
-@click.option("-y", is_flag=True, show_default=True, default=False, help="automatic confirmation")
+@click.option("-y", is_flag=True, show_default=True, default=False, help=NO_CONFIRMATION_PROMPT)
 @click.option(
-    "--ref", type=str, multiple=True, help="references for source. e.g. --ref user:llama --ref location:ocean"
+    "--ref",
+    type=str,
+    multiple=True,
+    metavar="KEY:VALUE",
+    help=REFERENCES,
 )
 @click.option("--timestamp", type=str, help=TIMESTAMP_DESCRIPTION)
 @click.option("--security", required=True, type=str, help=SECURITY_STRING_DESCRIPTION)
 def put_stdin(y: bool, filename: str, source: str, ref: list[str], timestamp: str, security: str):
-    """Upload a file from stdin into an Azul source.
+    """Upload a file from stdin into an Azul SOURCE.
 
     FILENAME is the name of the file in Azul, and SOURCE is the ID of the source to upload the file to.
     """
@@ -415,7 +516,9 @@ def put_stdin(y: bool, filename: str, source: str, ref: list[str], timestamp: st
     click.echo(f"Timestamp: {timestamp}")
     click.echo(f"Security: {security}")
 
-    if not y and not click.confirm("Proceed with upload of file?"):
+    # If asked to write -y it will take the stdin input and either fail, or take away from the stdin.
+    if not y:
+        click.echo("Please double check the summary and input and parse -y to confirm")
         sys.exit(1)
 
     # Read file in chunks into a spooled temporary file.
@@ -436,7 +539,13 @@ def put_stdin(y: bool, filename: str, source: str, ref: list[str], timestamp: st
         click.echo(f"{filename} - {resp.sha256}")
 
 
-@binaries.command(help="""Get a binary's metadata from Azul by SHA256.""")
+# azul binaries get-meta
+@binaries.command(cls=ExamplesCommand)
+@with_examples(
+    "$ azul b get-meta <SHA256>",
+    "$ azul b get-meta --no-pretty <SHA256>",
+    "$ azul b get-meta --output /tmp/metadata.txt <SHA256>",
+)
 @click.argument("sha256")
 @click.option(
     "-o",
@@ -452,7 +561,7 @@ def put_stdin(y: bool, filename: str, source: str, ref: list[str], timestamp: st
     default=os.isatty(sys.stdout.fileno()),
 )
 def get_meta(sha256: str, output: str, pretty: bool):
-    """Get metadata for a binary."""
+    """Get a binary's metadata from Azul by SHA256."""
     entity = api.binaries_meta.get_meta(sha256)
 
     if output == "-":
@@ -463,16 +572,21 @@ def get_meta(sha256: str, output: str, pretty: bool):
             f.write(entity.model_dump_json(indent=4))
 
 
-@binaries.command(
-    help="""
-Find and download samples from Azul.
-Combining multiple filters may lead to unexpected results.
-You can only query multiple attributes over a single authors document.
-"""
+# azul binaries get
+@binaries.command(cls=ExamplesCommand)
+@with_examples(
+    "$ azul b get --output /tmp",
+    "$ azul b get --term 'size:<1MB \"executable/windows\"'",
+    "$ azul b get --output /tmp --term 'size:<1MB \"executable/windows\"'",
+    "",
+    "$ azul b get --sort-by timestamp",
+    "$ azul b get --sort-by timestamp --sort-asc",
+    "",
+    "$ azul b get -o /tmp --term 'size:<1MB \"executable/windows\"' --sort-by timestamp",
 )
-@click.option("-o", "--output", help="output folder")
-@click.option("--term", help="search term (refer to UI Explore for suggested search terms)", default="")
-@click.option("--max", help="max number of entities to retrieve", default=100)
+@click.option("-o", "--output", help="Download and output to this folder.")
+@click.option("--term", help="Search term (refer to UI Explore for suggested search terms)", default="")
+@click.option("--max", "--limit", help="Max number of results (Default: 100)", default=100)
 @click.option(
     "--sort-by",
     default=None,
@@ -489,7 +603,11 @@ You can only query multiple attributes over a single authors document.
     "--sort-asc", default=False, is_flag=True, show_default=True, help="sort by ascending rather than descending."
 )
 def get(output: str, term: str, max: int, sort_by: models_restapi.FindBinariesSortEnum, sort_asc: bool):
-    """Get all samples matching the criteria and optionally download the files to an output folder."""
+    """Query Azul from CLI, export hashes or download samples.
+
+    Combining multiple filters may lead to unexpected results.
+    You can only query multiple attributes over a single authors document.
+    """
     if output:
         click.echo(f"saving output to folder {output}")
     else:
@@ -517,17 +635,21 @@ def get(output: str, term: str, max: int, sort_by: models_restapi.FindBinariesSo
                 click.echo("content not found")
 
 
-@binaries.command(
-    help="""
-Downloaded the provided sha256's from azul in Cart form.
-All provided arguments will be considered sha256's.
-You can also optionally provide and output folder to not download to the current directory.
-"""
+# azul binaries download
+@binaries.command(cls=ExamplesCommand)
+@with_examples(
+    "$ azul binaries download <SHA256>",
+    "$ azul binaries download --outout /tmp <SHA256>",
+    "$ azul b download -o /tmp/ <SHA256>",
 )
 @click.argument("sha256s", nargs=-1, type=str)
-@click.option("-o", "--output", help="output folder")
+@click.option("-o", "--output", help="Output folder.")
 def download(sha256s: tuple[str], output: str):
-    """Download the provided sha256's from Azul."""
+    """Downloaded the provided SHA256's from Azul in Cart form.
+
+    All provided arguments will be considered SHA256's.
+    You can also optionally provide and output folder to not download to the current directory.
+    """
     if output:
         click.echo(f"saving output to folder {output}")
     else:

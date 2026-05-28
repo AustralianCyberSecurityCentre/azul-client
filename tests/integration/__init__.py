@@ -31,7 +31,7 @@ def setUpModule():
         "references": module_ref,
         "refresh": True,  # Make sure parent binaries are in the system ASAP so we can use them for tests
     }
-    number_of_binaries = 10  # Number of binaries to generate
+    number_of_binaries = 11  # Number of binaries to generate
     for i in range(number_of_binaries):
         # Random content to make each test run unique.
         random_string = "".join(random.choices(string.ascii_letters + string.digits, k=500))
@@ -47,6 +47,12 @@ def setUpModule():
         temp_kwargs["filename"] = f"test_basic_upload-{i}.txt"
         entity = api.binaries_data.upload(std_content, **temp_kwargs)
         module_sha256s.append(entity.sha256)
+
+        # ensure there are at least 10 zero entropy files
+        temp_kwargs["filename"] = f"test-zero-entropy-file-{i}.txt"
+        zero_byte_content = bytes("." * (i + 1), "utf-8")
+        entity = api.binaries_data.upload(io.BytesIO(zero_byte_content), **temp_kwargs)
+
     print(f"Module file hashes: {module_sha256s}")  # run test with `pytest -s` to see this print out
 
     start_time = time.time()

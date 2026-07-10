@@ -29,7 +29,14 @@ class Api:
 
     def __init__(self, conf: config.Config | None = None) -> None:
         # api support
-        self.config = conf if conf else config.get_config()
+        try:
+            self.config = conf if conf else config.get_config()
+        except Exception as e:
+            if len(e.args) == 1:
+                print(f"Error: {e.args[0]}")
+            else:
+                print(f"Error with config [{config.config_section}]!")
+            sys.exit(1)
         self.auth = oidc.OIDC(self.config)
 
         self._api_implementations = []

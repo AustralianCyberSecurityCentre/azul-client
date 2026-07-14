@@ -8,6 +8,7 @@ class BadResponse(Exception):
 
     def __init__(self, resp: httpx.Response, *args):
         self.message = f"{resp.url} - {resp.status_code} - {resp.content}"
+        self.content = resp.content
         super().__init__(self.message, *args)
 
 

@@ -235,7 +235,7 @@ def test_put_stdin(api: Api, runner: CliRunner, httpx_mock: HTTPXMock, dummy_ent
             "-y",
         ],
     )
-    print(res.stdout)
+    print(f"=={res.stdout}==")
     print(res.exception)
     assert res.exit_code == 0
     assert "Filename: Spooled-test-file1.txt" in res.stdout

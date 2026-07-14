@@ -10,6 +10,7 @@ import click
 import pendulum
 from azul_bedrock import models_restapi
 from pendulum.datetime import DateTime
+from pendulum.exceptions import ParserError
 from pydantic import BaseModel
 from rich.console import Console
 
@@ -239,39 +240,58 @@ def _shared_submit(
     parent_rels: dict[str, str] | None = None,
     source: str = "",
     source_refs: dict | None = None,
+    from_stdin: bool = False,
 ):
     """Common class for submitting binaries to Azul."""
     security = security if security else ""
     if not timestamp:
         timestamp = pendulum.now(pendulum.UTC).to_iso8601_string()
     else:
-        timestamp_datetime = pendulum.parse(timestamp)
-        if not isinstance(timestamp_datetime, DateTime):
-            raise ValueError(f"Provided datetime {timestamp} is not in a valid format.")
-        timestamp = timestamp_datetime.to_iso8601_string()
+        try:
+            timestamp_datetime = pendulum.parse(timestamp)
+            if not isinstance(timestamp_datetime, DateTime):
+                raise ValueError(f"Provided datetime {timestamp} is not in a valid format.")
+            timestamp = timestamp_datetime.to_iso8601_string()
+        except ParserError:
+            click.echo(f"Error - Unable to parse timestamp: {timestamp}")
+            sys.exit(1)
 
-    raw_input_files = _walk_files_in_path(path)
+    if not from_stdin:
+        raw_input_files = _walk_files_in_path(path)
 
-    # generate azul file names
-    input_files = []
-    for filepath in raw_input_files:
-        # try to remove provided path, unless that was a reference to a specific file
-        # in which case keep the filename only
-        adjusted = filepath.removeprefix(path)
-        filename = os.path.basename(filepath)
-        if filename not in adjusted:
-            adjusted = filename
-        input_files.append((filepath, adjusted))
+        # generate azul file names
+        input_files = []
+        for filepath in raw_input_files:
+            # try to remove provided path, unless that was a reference to a specific file
+            # in which case keep the filename only
+            adjusted = filepath.removeprefix(path)
+            filename = os.path.basename(filepath)
+            if filename not in adjusted:
+                adjusted = filename
+            input_files.append((filepath, adjusted))
 
-    # print info and confirm to upload
-    click.echo(f"{len(input_files)} files found including:")
-    for _, filepath in input_files[:10]:
-        click.echo(filepath)
+        # print info and confirm to upload
+        click.echo(f"{len(input_files)} files found including:")
+        for _, filepath in input_files[:10]:
+            click.echo(filepath)
+    else:
+        # Read file in chunks into a spooled temporary file.
+        chunk_size = 1024 * 1024 * 1024
+        spooledFile = SpooledTemporaryFile(max_size=chunk_size)
+        while chunk := sys.stdin.buffer.read(chunk_size):
+            spooledFile.write(chunk)
+        file_size = spooledFile.tell()
+        click.echo(f"Read {file_size} bytes of binary from stdin")
+        spooledFile.seek(0)
+        input_files = [(spooledFile, path)]
 
+    if from_stdin:
+        click.echo(f"Filename: {path}")
     click.echo(f"Security: {security}")
     click.echo(f"Timestamp: {timestamp}")
-    click.echo(f"Extract: {extract}")
-    click.echo(f"Extract Password: {extract_password}")
+    if not from_stdin:
+        click.echo(f"Extract: {extract}")
+        click.echo(f"Extract Password: {extract_password}")
     if parent:
         click.echo(f"Parent: {parent}")
         click.echo(f"Relationship: {parent_rels}")
@@ -279,39 +299,63 @@ def _shared_submit(
         click.echo(f"Source: {source}")
         click.echo(f"References: {source_refs}")
 
+    # put-stdin can't process confirmation on stdin, instead rerun with -y arg
+    if from_stdin and not confirmed:
+        click.echo("Rerun command with -y argument to proceed with upload of 1 file")
+        sys.exit(1)
+
     if not confirmed and not click.confirm(f"Proceed with upload of {len(input_files)} files?"):
         sys.exit(1)
 
     # submit each file
     for fullpath, filepath in input_files:
-        with open(fullpath, "rb") as f:
-            if parent:
-                if parent_rels is None:
-                    raise ValueError(
-                        f"{parent_rels=} must be a dictionary with at least one key value pair for uploading a child binary."
+        with _open_wrapper(fullpath) as f:
+            try:
+                if parent:
+                    if parent_rels is None:
+                        raise ValueError(
+                            f"{parent_rels=} must be a dictionary with at least one key value pair for uploading a child binary."
+                        )
+                    resp = api.binaries_data.upload_child(
+                        f,
+                        parent_sha256=parent,
+                        relationship=parent_rels,
+                        security=security,
+                        filename=filepath,
+                        timestamp=timestamp,
+                        extract=extract,
+                        password=extract_password,
                     )
-                resp = api.binaries_data.upload_child(
-                    f,
-                    parent_sha256=parent,
-                    relationship=parent_rels,
-                    security=security,
-                    filename=filepath,
-                    timestamp=timestamp,
-                    extract=extract,
-                    password=extract_password,
-                )
-            else:
-                resp = api.binaries_data.upload(
-                    f,
-                    security=security,
-                    source_id=source,
-                    filename=filepath,
-                    timestamp=timestamp,
-                    references=source_refs,
-                    extract=extract,
-                    password=extract_password,
-                )
-            click.echo(f"{filepath} - {resp.sha256}")
+                else:
+                    resp = api.binaries_data.upload(
+                        f,
+                        security=security,
+                        source_id=source,
+                        filename=filepath,
+                        timestamp=timestamp,
+                        references=source_refs,
+                        extract=extract,
+                        password=extract_password,
+                    )
+                click.echo(f"{filepath} - {resp.sha256}")
+
+            except BadResponse as e:
+                err = json.loads(e.content).get("message")
+                if "no content in request body" in err:
+                    err = "Submitted file was empty"
+                click.echo(f"Error - {err}")
+
+
+def _open_wrapper(input_source: str | SpooledTemporaryFile):
+    if isinstance(input_source, str):
+        # if some_path was given, open it
+        return open(input_source, "rb")
+
+    if isinstance(input_source, SpooledTemporaryFile):
+        print("stdin times!")
+        # file input was from stdin, return that instead
+
+        return input_source
 
 
 def _print_model(model: BaseModel, pretty: bool):
@@ -392,7 +436,7 @@ def put_child(
     A PARENT, RELATIONSHIP, and SECURITY are required for all files.
     """
     parsed_relationships = [r.split(":", 1) for r in relationship]
-    relation_dict = {item[0]: item[1] for item in parsed_relationships}
+    relation_dict = {item[0]: item[1].lstrip() for item in parsed_relationships}
     _shared_submit(
         y,
         path,
@@ -455,7 +499,7 @@ def put(
     You can (& should) have multiple --ref arguments.
     """
     split_refs = [x.split(":", 1) for x in ref]
-    refs = {x[0]: x[1] for x in split_refs}
+    refs = {x[0]: x[1].lstrip() for x in split_refs}
     _shared_submit(
         y,
         path,
@@ -497,46 +541,16 @@ def put_stdin(y: bool, filename: str, source: str, ref: list[str], timestamp: st
     FILENAME is the name of the file in Azul, and SOURCE is the ID of the source to upload the file to.
     """
     split_refs = [x.split(":", 1) for x in ref]
-    refs = {x[0]: x[1] for x in split_refs}
-    security = security if security else ""
-
-    if not timestamp:
-        timestamp = pendulum.now(pendulum.UTC).to_iso8601_string()
-    else:
-        parsed_timestamp = pendulum.parse(timestamp)
-        if isinstance(parsed_timestamp, DateTime):
-            timestamp = parsed_timestamp.to_iso8601_string()
-        else:
-            click.echo(f"Provided timestamp {timestamp} is in an invalid format, it must be a DateTime.")
-            raise Exception("Provided timestamp")
-
-    click.echo(f"Filename: {filename}")
-    click.echo(f"Source: {source}")
-    click.echo(f"References: {refs}")
-    click.echo(f"Timestamp: {timestamp}")
-    click.echo(f"Security: {security}")
-
-    # If asked to write -y it will take the stdin input and either fail, or take away from the stdin.
-    if not y:
-        click.echo("Please double check the summary and input and parse -y to confirm")
-        sys.exit(1)
-
-    # Read file in chunks into a spooled temporary file.
-    chunk_size = 1024 * 1024 * 1024
-    with SpooledTemporaryFile(max_size=chunk_size) as spooledFile:
-        while chunk := sys.stdin.buffer.read(chunk_size):
-            spooledFile.write(chunk)
-        spooledFile.seek(0)
-
-        resp = api.binaries_data.upload(
-            spooledFile,
-            security=security,
-            source_id=source,
-            filename=filename,
-            timestamp=timestamp,
-            references=refs,
-        )
-        click.echo(f"{filename} - {resp.sha256}")
+    refs = {x[0]: x[1].lstrip() for x in split_refs}
+    _shared_submit(
+        y,
+        filename,
+        security=security,
+        timestamp=timestamp,
+        source=source,
+        source_refs=refs,
+        from_stdin=True,
+    )
 
 
 # azul binaries get-meta
@@ -562,7 +576,12 @@ def put_stdin(y: bool, filename: str, source: str, ref: list[str], timestamp: st
 )
 def get_meta(sha256: str, output: str, pretty: bool):
     """Get a binary's metadata from Azul by SHA256."""
-    entity = api.binaries_meta.get_meta(sha256)
+    try:
+        entity = api.binaries_meta.get_meta(sha256)
+    except BadResponse as e:
+        err = json.loads(e.content).get("detail")[0].get("msg")
+        click.echo(f"Error - {err}")
+        sys.exit(1)
 
     if output == "-":
         _print_model(entity, pretty)
@@ -612,7 +631,16 @@ def get(output: str, term: str, max: int, sort_by: models_restapi.FindBinariesSo
         click.echo(f"saving output to folder {output}")
     else:
         click.echo("no output folder provided, skip download")
-    entity = api.binaries_meta.find(term=term, max_entities=max, sort_prop=sort_by, sort_asc=sort_asc)
+    try:
+        entity = api.binaries_meta.find(term=term, max_entities=max, sort_prop=sort_by, sort_asc=sort_asc)
+    except BadResponse as e:
+        try:
+            err = json.loads(e.content).get("message")
+        except json.JSONDecodeError:
+            if isinstance(e.content, bytes):
+                err = e.content.decode("utf-8", errors="ignore")
+        click.echo(f"Error - {err}")
+        sys.exit(1)
 
     # create output folder
     if output:

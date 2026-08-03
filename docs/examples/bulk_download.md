@@ -14,7 +14,7 @@ azul_api = Api()
 today = pendulum.today().format("YYYY-MM-DD")
 
 # build a query string
-query = f"timestamp:\"{today}\""
+query = f'timestamp:"{today}"'
 
 # find binaries in Azul based on query string
 res = azul_api.binaries_meta.find(query, max_entities=10)

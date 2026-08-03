@@ -23,6 +23,7 @@ for f in feats.items:
 count_unique_fv = client.features.count_unique_values_in_feature([last_feat_name])
 for feat_name, count_ref in count_unique_fv.items():
     print(f"{feat_name}:")
-    print(f"name: {count_ref.name}, number of values: {count_ref.values}, number of entities with feature: {count_ref.entities}")
-
+    print(
+        f"name: {count_ref.name}, number of values: {count_ref.values}, number of entities with feature: {count_ref.entities}"
+    )
 ```

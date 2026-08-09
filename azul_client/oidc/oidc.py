@@ -72,10 +72,22 @@ class OIDC:
         self._oidc_info = _get_json(resp, "well known")
 
     @config._lock_azul_config
-    def get_client(self):
+    def get_client(self) -> httpx.Client:
         """Return a httpx client object with an up to date authorization token."""
+        headers: dict[str, str] = {}
+        if self.cfg.auth_type in ["callback", "service"]:
+            headers["authorization"] = "Bearer " + self._get_access_token()
+        elif self.cfg.auth_type == "apikey" or self.cfg.auth_type == "api_key":
+            headers["X-API-Key"] = self.cfg.api_key
+        elif self.cfg.auth_type == "none":
+            pass
+        else:
+            raise NotImplementedError(
+                f"Auth type '{self.cfg.auth_type}' not implemented, valid options are ['none','service','callback','apikey']."
+            )
+
         out_client = httpx.Client(
-            headers={"authorization": "Bearer " + self._get_access_token()},
+            headers=headers,
             mounts={
                 "http://": httpx.HTTPTransport(retries=5),
                 "https://": httpx.HTTPTransport(retries=5),
@@ -169,10 +181,7 @@ class OIDC:
     def _get_token_non_refresh(self):
         # use auth method nominated in config
         atype = self.cfg.auth_type
-        if atype == "none":
-            # no access token is required
-            tk = {}
-        elif atype == "callback":
+        if atype == "callback":
             tk = self._via_code_callback()
         elif atype == "service":
             tk = self._via_service_token()
@@ -182,9 +191,9 @@ class OIDC:
 
     def _get_token(self):
         """Get auth tokens to Azul."""
-        if self.cfg.auth_type == "none":
-            # no access token is required
-            return {}
+        # if self.cfg.auth_type == "none":
+        #     # no access token is required
+        #     return {}
 
         if self.cfg.auth_token:
             if time.time() > self.cfg.auth_token_time + 60:
@@ -210,6 +219,7 @@ class OIDC:
     def _get_access_token(self) -> str:
         """Get valid access token to authenticate with Azul."""
         token = self._get_token().get("access_token", "none")
-        if not token and self.cfg.auth_type != "none":
+        if not token:
+            # if not token and self.cfg.auth_type != "none":
             raise Exception("Token required but was not found")
         return token

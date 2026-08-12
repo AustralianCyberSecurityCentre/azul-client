@@ -47,10 +47,12 @@ class Config(BaseSettings):
 
     azul_url: str = "http://localhost"
     oidc_url: str = "http://keycloak/.well-known/openid-configuration"
+    # Valid values are "none", "callback", "service", "apikey
     auth_type: str = "callback"
     auth_scopes: str = ""
     auth_client_id: str = "azul-web"
     auth_client_secret: str = ""  # noqa S105
+    api_key: str = ""  # Apikey to be used for apikey based auth.
     azul_verify_ssl: bool = True
     auth_token: dict | None = {}
     auth_token_time: int = 0

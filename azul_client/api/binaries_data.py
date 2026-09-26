@@ -332,7 +332,7 @@ class BinariesData(BaseApiHandler):
         include_queries: bool = False,
     ) -> models_restapi.BinaryData:
         """Upload new metadata and potentially alt-streams for a binary."""
-        if not binary_id and re.search(self.SHA256_regex, binary_id):
+        if not binary_id or not re.fullmatch(self.SHA256_regex, binary_id):
             raise ValueError(f"{binary_id=} must be set to a valid sha256 value.")
 
         if security is not None and not isinstance(security, str):

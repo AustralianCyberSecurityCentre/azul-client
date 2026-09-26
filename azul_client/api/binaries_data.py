@@ -54,6 +54,7 @@ class _OpenFile:
             if not os.path.exists(file_path_or_contents):
                 raise FileExistsError(f"The file with the path {file_path_or_contents=} does not exist.")
             self.handle = open(file_path_or_contents, mode="rb")
+            self.opened_file = True
         elif isinstance(file_path_or_contents, SpooledTemporaryFile):
             self.handle = file_path_or_contents
         elif isinstance(file_path_or_contents, bytearray):
@@ -73,7 +74,7 @@ class _OpenFile:
         """If a file was opened close it."""
         if self.opened_file:
             try:
-                if self.handle and self.handle.closed:
+                if self.handle is not None and not self.handle.closed:
                     self.handle.close()
             except Exception:
                 print("Failed to close a file.")

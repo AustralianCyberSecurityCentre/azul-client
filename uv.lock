@@ -465,10 +465,10 @@ wheels = [
 
 [[package]]
 name = "malpz"
-version = "13.0.12"
+version = "13.0.14"
 source = { registry = "https://devpi.acsc.internal/azul/stable/" }
 wheels = [
-    { url = "https://devpi.acsc.internal/azul/stable/+f/bff/9838781b9a51c/malpz-13.0.12-py3-none-any.whl", hash = "sha256:bff9838781b9a51c639e938d949283cbb67d61ade39549304acb5a03c7d1d863" },
+    { url = "https://devpi.acsc.internal/azul/stable/+f/446/7fc3f3054acdf/malpz-13.0.14-py3-none-any.whl", hash = "sha256:4467fc3f3054acdf220e9b72a3397411b438906454ed15036358871dbea02154" },
 ]
 
 [[package]]

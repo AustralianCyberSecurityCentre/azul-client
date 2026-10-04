@@ -49,7 +49,7 @@ wheels = [
 
 [[package]]
 name = "azul-bedrock"
-version = "13.0.50"
+version = "13.0.52"
 source = { registry = "https://devpi.acsc.internal/azul/stable/" }
 dependencies = [
     { name = "babel" },
@@ -67,7 +67,7 @@ dependencies = [
     { name = "yara-x" },
 ]
 wheels = [
-    { url = "https://devpi.acsc.internal/azul/stable/+f/56e/67bde9432f70e/azul_bedrock-13.0.50-py3-none-any.whl", hash = "sha256:56e67bde9432f70ee9502784f554660a7d8f050f87658702eab74b9f931d2904" },
+    { url = "https://devpi.acsc.internal/azul/stable/+f/f83/5525d84bf56d8/azul_bedrock-13.0.52-py3-none-any.whl", hash = "sha256:f835525d84bf56d815cbc57ca3972fe46e148362468ea0c22ccaf501038e038f" },
 ]
 
 [[package]]
@@ -465,10 +465,10 @@ wheels = [
 
 [[package]]
 name = "malpz"
-version = "13.0.14"
+version = "13.0.16"
 source = { registry = "https://devpi.acsc.internal/azul/stable/" }
 wheels = [
-    { url = "https://devpi.acsc.internal/azul/stable/+f/446/7fc3f3054acdf/malpz-13.0.14-py3-none-any.whl", hash = "sha256:4467fc3f3054acdf220e9b72a3397411b438906454ed15036358871dbea02154" },
+    { url = "https://devpi.acsc.internal/azul/stable/+f/96d/f67f4c40b46df/malpz-13.0.16-py3-none-any.whl", hash = "sha256:96df67f4c40b46dffb92d2e9cc71883754626feae5333946ae8765f997e4a5fb" },
 ]
 
 [[package]]

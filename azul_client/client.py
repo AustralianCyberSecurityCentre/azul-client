@@ -766,7 +766,11 @@ def download_request(
 
     try:
         while time.time() - start < timeout:
-            status = api.binaries_data.get_download_request_status(sha256)
+            try:
+                status = api.binaries_data.get_download_request_status(sha256)
+            except BadResponse404:
+                time.sleep(poll_interval)
+                continue
 
             plugin_statuses = status.get("data", {}).get("plugin_statuses", [])
 

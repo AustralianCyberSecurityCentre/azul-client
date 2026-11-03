@@ -1,5 +1,7 @@
 import io
 import time
+import uuid
+import hashlib
 
 from azul_bedrock import models_network as azm
 from azul_bedrock import models_restapi
@@ -295,7 +297,7 @@ class TestBinaryDataOther(BaseApiTest):
         )
 
     def test_download_request_waits_for_plugin_pickup(self):
-        sha256 = self.sha256s[0]
+        sha256 = hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest()
         print("known source:", self.known_source)
         print("sha256:", sha256)
 

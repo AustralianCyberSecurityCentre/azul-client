@@ -307,9 +307,14 @@ class TestBinaryDataOther(BaseApiTest):
         start_time = time.time()
 
         plugin_statuses = []
+        status = None
 
         while time.time() - start_time < timeout:
-            status = self.api.binaries_data.get_download_request_status(sha256)
+            try:
+                status = self.api.binaries_data.get_download_request_status(sha256)
+            except BadResponse404:
+                time.sleep(2)
+                continue
 
             plugin_statuses = status.get("data", {}).get(
                 "plugin_statuses",
@@ -335,9 +340,20 @@ class TestBinaryDataOther(BaseApiTest):
             security=self.default_security,
         )
 
-        status = self.api.binaries_data.get_download_request_status(sha256)
+        timeout = 30
+        start_time = time.time()
 
-        self.assertIn("data", status)
+        status = None
+
+        while time.time() - start_time < timeout:
+            try:
+                status = self.api.binaries_data.get_download_request_status(sha256)
+                break
+            except BadResponse404:
+                time.sleep(2)
+
+        self.assertIsNotNone(status, "Download request never appeared in status endpoint")
+
         self.assertEqual(
             status["data"]["sha256"],
             sha256,

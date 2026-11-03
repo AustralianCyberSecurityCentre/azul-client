@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import time
 from tempfile import SpooledTemporaryFile
 
 import click
@@ -729,6 +730,72 @@ def download(sha256s: tuple[str], output: str):
         click.echo("")
 
     click.echo(f"Download completed for the following files:\n  {'\n  '.join(successful_download_paths)}")
+
+
+@binaries.command(name="download-request")
+@click.argument("sha256")
+@click.argument("source")
+@click.option(
+    "--security",
+    required=True,
+    type=str,
+    help=SECURITY_STRING_DESCRIPTION,
+)
+def download_request(
+    sha256: str,
+    source: str,
+    security: str,
+):
+    """Trigger a download request and wait for the first plugin status."""
+    if not api.sources.check_source_exists(source):
+        click.echo(f"Unknown source '{source}'. Use 'azul sources list' to see valid sources.")
+        sys.exit(1)
+
+    api.binaries_data.submit_download_request(
+        sha256=sha256,
+        source_id=source,
+        security=security,
+    )
+
+    timeout = 30
+    poll_interval = 2
+    start = time.time()
+    status = None
+
+    click.echo("Waiting for plugin status", nl=False)
+
+    try:
+        while time.time() - start < timeout:
+            status = api.binaries_data.get_download_request_status(sha256)
+
+            plugin_statuses = status.get("data", {}).get("plugin_statuses", [])
+
+            if plugin_statuses:
+                click.echo(" done")
+                click.echo(json.dumps(status, indent=2))
+                return
+
+            click.echo(".", nl=False)
+            sys.stdout.flush()
+            time.sleep(poll_interval)
+
+    except KeyboardInterrupt:
+        click.echo("\nCancelled.")
+        sys.exit(1)
+
+    click.echo(f" timeout. Use 'azul b download-status {sha256}' to check.")
+
+    if status is not None:
+        click.echo(json.dumps(status, indent=2))
+
+
+@binaries.command(name="download-status")
+@click.argument("sha256")
+def download_status(sha256: str):
+    """Request download event status for provided sha256."""
+    result = api.binaries_data.get_download_request_status(sha256)
+
+    click.echo(json.dumps(result, indent=2))
 
 
 cli.add_command(_client_config)

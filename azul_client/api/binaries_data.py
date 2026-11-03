@@ -543,3 +543,42 @@ class BinariesData(BaseApiHandler):
             response_model=models_restapi.BinaryStrings,
             params=params,
         )
+
+    def submit_download_request(
+        self,
+        sha256: str,
+        source_id: str,
+        *,
+        security: str = "",
+        references: dict[str, str] | None = None,
+        settings: dict[str, str] | None = None,
+    ):
+        """Trigger downloader plugins to run on provided sha256. Wait for status."""
+        body = {
+            "sha256": sha256,
+            "source_id": source_id,
+            "security": security,
+            "references": references or {},
+            "settings": settings or {},
+        }
+
+        return self._request(
+            method=HTTPMethod.POST,
+            url=self.cfg.azul_url + "/api/v0/binaries/source/download",
+            json=body,
+        ).json()
+
+    def get_download_request_status(
+        self,
+        sha256: str,
+        *,
+        include_download_requests: bool = False,
+    ):
+        """Request plugin status for download request of supplied sha256."""
+        return self._request(
+            method=HTTPMethod.GET,
+            url=self.cfg.azul_url + f"/api/v0/binaries/source/download/{sha256}",
+            params={
+                "include_download_requests": include_download_requests,
+            },
+        ).json()

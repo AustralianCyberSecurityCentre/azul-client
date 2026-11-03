@@ -293,3 +293,57 @@ class TestBinaryDataOther(BaseApiTest):
             expected_result,
             "take_n_hits",
         )
+
+    def test_download_request_waits_for_plugin_pickup(self):
+        sha256 = self.sha256s[0]
+
+        self.api.binaries_data.submit_download_request(
+            sha256=sha256,
+            source_id=self.known_source,
+            security=self.default_security,
+        )
+
+        timeout = 30
+        start_time = time.time()
+
+        plugin_statuses = []
+
+        while time.time() - start_time < timeout:
+            status = self.api.binaries_data.get_download_request_status(sha256)
+
+            plugin_statuses = status.get("data", {}).get(
+                "plugin_statuses",
+                [],
+            )
+
+            if plugin_statuses:
+                break
+
+            time.sleep(2)
+
+        self.assertTrue(
+            plugin_statuses,
+            f"Download request was never picked up by a plugin: {status}",
+        )
+
+    def test_download_status(self):
+        sha256 = self.sha256s[0]
+
+        self.api.binaries_data.submit_download_request(
+            sha256=sha256,
+            source_id=self.known_source,
+            security=self.default_security,
+        )
+
+        status = self.api.binaries_data.get_download_request_status(sha256)
+
+        self.assertIn("data", status)
+        self.assertEqual(
+            status["data"]["sha256"],
+            sha256,
+        )
+
+        self.assertIn(
+            "plugin_statuses",
+            status["data"],
+        )

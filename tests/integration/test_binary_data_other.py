@@ -338,7 +338,7 @@ class TestBinaryDataOther(BaseApiTest):
         )
 
     def test_download_status(self):
-        sha256 = self.sha256s[0]
+        sha256 = hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest()
 
         self.api.binaries_data.submit_download_request(
             sha256=sha256,

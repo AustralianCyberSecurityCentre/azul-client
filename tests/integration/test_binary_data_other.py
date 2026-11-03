@@ -296,12 +296,16 @@ class TestBinaryDataOther(BaseApiTest):
 
     def test_download_request_waits_for_plugin_pickup(self):
         sha256 = self.sha256s[0]
+        print("known source:", self.known_source)
+        print("sha256:", sha256)
 
-        self.api.binaries_data.submit_download_request(
+        resp = self.api.binaries_data.submit_download_request(
             sha256=sha256,
             source_id=self.known_source,
             security=self.default_security,
         )
+
+        print("Submit response: ", resp)
 
         timeout = 30
         start_time = time.time()

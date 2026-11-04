@@ -772,6 +772,8 @@ def download_request(
                 time.sleep(poll_interval)
                 continue
 
+            print(type(status))
+            print(status)
             plugin_statuses = status.get("data", {}).get("plugin_statuses", [])
 
             if plugin_statuses:

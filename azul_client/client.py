@@ -757,34 +757,44 @@ def download_request(
         security=security,
     )
 
-    timeout = 30
+    timeout = 60
     poll_interval = 2
     start = time.time()
     status = None
 
-    click.echo("Waiting for plugin status", nl=False)
+    spinner = ["|", "/", "-", "\\"]
+    spinner_index = 0
+
+    click.echo("Waiting for plugin status |", nl=False)
 
     try:
         while time.time() - start < timeout:
             try:
                 status = api.binaries_data.get_download_request_status(sha256)
             except BadResponse404:
+                click.echo(
+                    f"\rWaiting for plugin status {spinner[spinner_index % len(spinner)]}",
+                    nl=False,
+                )
+                sys.stdout.flush()
+                spinner_index += 1
                 time.sleep(poll_interval)
                 continue
 
-            print(type(status))
-            print(status)
-            plugin_statuses = status.get("data", {}).get("plugin_statuses", [])
+            download_statuses = status.get("data", [])
 
-            if plugin_statuses:
-                click.echo(" done")
+            if any(s.get("entity", {}).get("status") != "queued" for s in download_statuses):
+                click.echo("\rWaiting for plugin status done")
                 click.echo(json.dumps(status, indent=2))
                 return
 
-            click.echo(".", nl=False)
+            click.echo(
+                f"\rWaiting for plugin status {spinner[spinner_index % len(spinner)]}",
+                nl=False,
+            )
             sys.stdout.flush()
+            spinner_index += 1
             time.sleep(poll_interval)
-
     except KeyboardInterrupt:
         click.echo("\nCancelled.")
         sys.exit(1)

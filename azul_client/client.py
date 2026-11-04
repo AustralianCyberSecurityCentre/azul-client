@@ -732,7 +732,21 @@ def download(sha256s: tuple[str], output: str):
     click.echo(f"Download completed for the following files:\n  {'\n  '.join(successful_download_paths)}")
 
 
-@binaries.command(name="download-request")
+@binaries.command(name="download-request", cls=ExamplesCommand)
+@with_examples(
+    '$ azul b download-request <SHA256> virustotal --security "OFFICIAL TLP:CLEAR"',
+    "",
+    '$ azul b download-request <SHA256> virustotal --security "OFFICIAL TLP:CLEAR" '
+    '--ref "submitter_id:anonymous-user" '
+    '--ref "interface:web-ui"',
+    "",
+    '$ azul b download-request <SHA256> virustotal --security "OFFICIAL TLP:CLEAR" '
+    '--ref "submitter_id:anonymous-user" '
+    '--ref "interface:web-ui" '
+    '--ref "submitter_region:queensland" '
+    '--ref "submitter_country:australia" '
+    '--ref "submitter_city:brisbane"',
+)
 @click.argument("sha256")
 @click.argument(
     "source", help="The source for the downloaded sha256. See 'azul sources list' for list of valid sources"
@@ -754,16 +768,21 @@ def download_request(
     sha256: str,
     source: str,
     security: str,
+    ref: list[str],
 ):
     """Trigger a download request and wait for the first plugin status."""
     if not api.sources.check_source_exists(source):
         click.echo(f"Unknown source '{source}'. Use 'azul sources list' to see valid sources.")
         sys.exit(1)
 
+    split_refs = [x.split(":", 1) for x in ref]
+    references = {x[0]: x[1].lstrip() for x in split_refs}
+
     api.binaries_data.submit_download_request(
         sha256=sha256,
         source_id=source,
         security=security,
+        references=references,
     )
 
     timeout = 60

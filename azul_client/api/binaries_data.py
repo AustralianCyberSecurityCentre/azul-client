@@ -553,7 +553,7 @@ class BinariesData(BaseApiHandler):
         references: dict[str, str] | None = None,
         settings: dict[str, str] | None = None,
     ):
-        """Trigger downloader plugins to run on provided sha256. Wait for status."""
+        """Trigger downloader plugins to run on provided sha256."""
         body = {
             "sha256": sha256,
             "source_id": source_id,

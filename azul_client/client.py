@@ -734,12 +734,21 @@ def download(sha256s: tuple[str], output: str):
 
 @binaries.command(name="download-request")
 @click.argument("sha256")
-@click.argument("source")
+@click.argument(
+    "source", help="The source for the downloaded sha256. See 'azul sources list' for list of valid sources"
+)
 @click.option(
     "--security",
     required=True,
     type=str,
     help=SECURITY_STRING_DESCRIPTION,
+)
+@click.option(
+    "--ref",
+    type=str,
+    multiple=True,
+    metavar="KEY:VALUE",
+    help=REFERENCES,
 )
 def download_request(
     sha256: str,

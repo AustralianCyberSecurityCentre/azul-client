@@ -1,7 +1,5 @@
 import io
 import time
-import uuid
-import hashlib
 
 from azul_bedrock import models_network as azm
 from azul_bedrock import models_restapi
@@ -303,6 +301,7 @@ class TestBinaryDataOther(BaseApiTest):
             sha256=sha256,
             source_id=self.known_source,
             security=self.default_security,
+            references=self.upload_ref,
         )
 
         self.assertEqual(

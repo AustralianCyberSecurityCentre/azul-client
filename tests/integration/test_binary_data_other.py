@@ -331,7 +331,7 @@ class TestBinaryDataOther(BaseApiTest):
                 break
 
             time.sleep(2)
-
+        self.assertTrue(True)
         self.assertTrue(
             plugin_statuses,
             f"Download request was never picked up by a plugin: {status}",
@@ -357,7 +357,7 @@ class TestBinaryDataOther(BaseApiTest):
                 break
             except BadResponse404:
                 time.sleep(2)
-
+        self.assertTrue(True)
         self.assertIsNotNone(status, "Download request never appeared in status endpoint")
 
         self.assertEqual(

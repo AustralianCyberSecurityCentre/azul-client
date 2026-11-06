@@ -772,8 +772,9 @@ def download_request(
 ):
     """Trigger a download request and wait for the first plugin status."""
     if not api.sources.check_source_exists(source):
-        click.echo(f"Unknown source '{source}'. Use 'azul sources list' to see valid sources.")
-        sys.exit(1)
+        raise click.ClickException(
+            f"Unknown source '{source}'. Use 'azul sources list' to see valid sources."
+        )
 
     split_refs = [x.split(":", 1) for x in ref]
     references = {x[0]: x[1].lstrip() for x in split_refs}
@@ -808,6 +809,8 @@ def download_request(
                 spinner_index += 1
                 time.sleep(poll_interval)
                 continue
+            except BadResponse as ex:
+                raise click.ClickException(f"Unable to check download status: {ex}") from ex
 
             download_statuses = status.get("data", [])
 
@@ -824,8 +827,7 @@ def download_request(
             spinner_index += 1
             time.sleep(poll_interval)
     except KeyboardInterrupt:
-        click.echo("\nCancelled.")
-        sys.exit(1)
+        raise click.ClickException("\nCancelled.")
 
     click.echo(f" timeout. Use 'azul b download-status {sha256}' to check.")
 

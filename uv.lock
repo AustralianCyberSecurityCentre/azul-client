@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 
 [options]
@@ -7,14 +7,14 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-azul-plugin-retrohunt = false
-azul-security = false
-azul-nsrl-lookup-serve = false
-azul-runner = false
-malpz = false
-azul-metastore = false
 azul-bedrock = false
+azul-metastore = false
+azul-nsrl-lookup-serve = false
 azul-nsrl-lookup-server = false
+azul-plugin-retrohunt = false
+azul-runner = false
+azul-security = false
+malpz = false
 
 [[package]]
 name = "annotated-doc"
@@ -49,7 +49,7 @@ wheels = [
 
 [[package]]
 name = "azul-bedrock"
-version = "13.0.83"
+version = "14.0.1"
 source = { registry = "https://devpi.acsc.internal/azul/stable/" }
 dependencies = [
     { name = "babel" },
@@ -67,7 +67,7 @@ dependencies = [
     { name = "yara-x" },
 ]
 wheels = [
-    { url = "https://devpi.acsc.internal/azul/stable/+f/09f/4129afea7b75b/azul_bedrock-13.0.83-py3-none-any.whl", hash = "sha256:09f4129afea7b75bfe91382c1a767a1b8c9f69623eda253d0ca069882350389f" },
+    { url = "https://devpi.acsc.internal/azul/stable/+f/dcd/ba6327c5e5040/azul_bedrock-14.0.1-py3-none-any.whl", hash = "sha256:dcdba6327c5e50402942bbc454f596da9a5d77d9787cf34c3f2fa3b61c14dfff" },
 ]
 
 [[package]]

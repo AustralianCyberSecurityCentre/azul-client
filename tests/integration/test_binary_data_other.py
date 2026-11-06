@@ -293,3 +293,47 @@ class TestBinaryDataOther(BaseApiTest):
             expected_result,
             "take_n_hits",
         )
+
+    def test_submit_download_request(self):
+        sha256 = self.sha256s[0]
+
+        response = self.api.binaries_data.submit_download_request(
+            sha256=sha256,
+            source_id=self.known_source,
+            security=self.default_security,
+            references=self.upload_ref,
+        )
+
+        self.assertEqual(
+            response["data"]["sha256"],
+            sha256,
+        )
+
+        self.assertEqual(
+            response["data"]["last_download_security"],
+            self.default_security,
+        )
+
+        self.assertIn(
+            "plugin_statuses",
+            response["data"],
+        )
+
+        self.assertIsInstance(
+            response["data"]["plugin_statuses"],
+            list,
+        )
+
+    def test_get_download_request_status(self):
+        sha256 = self.sha256s[0]
+
+        try:
+            response = self.api.binaries_data.get_download_request_status(
+                sha256=sha256,
+            )
+        except BadResponse404 as exc:
+            self.assertIn("MetastoreDownloadRequestNotMade", str(exc))
+            return
+
+        self.assertIsInstance(response, dict)
+        self.assertIn("data", response)

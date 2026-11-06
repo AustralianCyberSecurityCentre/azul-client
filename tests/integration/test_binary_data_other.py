@@ -323,3 +323,13 @@ class TestBinaryDataOther(BaseApiTest):
             response["data"]["plugin_statuses"],
             list,
         )
+
+    def test_get_download_request_status(self):
+        sha256 = self.sha256s[0]
+
+        response = self.api.binaries_data.get_download_request_status(
+            sha256=sha256,
+        )
+
+        self.assertIsInstance(response, dict)
+        self.assertIn("data", response)

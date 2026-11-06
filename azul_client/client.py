@@ -772,9 +772,7 @@ def download_request(
 ):
     """Trigger a download request and wait for the first plugin status."""
     if not api.sources.check_source_exists(source):
-        raise click.ClickException(
-            f"Unknown source '{source}'. Use 'azul sources list' to see valid sources."
-        )
+        raise click.ClickException(f"Unknown source '{source}'. Use 'azul sources list' to see valid sources.")
 
     split_refs = [x.split(":", 1) for x in ref]
     references = {x[0]: x[1].lstrip() for x in split_refs}
@@ -827,7 +825,7 @@ def download_request(
             spinner_index += 1
             time.sleep(poll_interval)
     except KeyboardInterrupt:
-        raise click.ClickException("\nCancelled.")
+        raise click.ClickException("\nCancelled.") from None
 
     click.echo(f" timeout. Use 'azul b download-status {sha256}' to check.")
 

@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import time
 from tempfile import SpooledTemporaryFile
 
 import click
@@ -729,6 +730,116 @@ def download(sha256s: tuple[str], output: str):
         click.echo("")
 
     click.echo(f"Download completed for the following files:\n  {'\n  '.join(successful_download_paths)}")
+
+
+@binaries.command(name="download-request", cls=ExamplesCommand)
+@with_examples(
+    '$ azul b download-request <SHA256> virustotal --security "OFFICIAL TLP:CLEAR"',
+    "",
+    '$ azul b download-request <SHA256> virustotal --security "OFFICIAL TLP:CLEAR" '
+    '--ref "submitter_id:anonymous-user" '
+    '--ref "interface:web-ui"',
+    "",
+    '$ azul b download-request <SHA256> virustotal --security "OFFICIAL TLP:CLEAR" '
+    '--ref "submitter_id:anonymous-user" '
+    '--ref "interface:web-ui" '
+    '--ref "submitter_region:queensland" '
+    '--ref "submitter_country:australia" '
+    '--ref "submitter_city:brisbane"',
+)
+@click.argument("sha256")
+@click.argument(
+    "source", help="The source for the downloaded sha256. See 'azul sources list' for list of valid sources"
+)
+@click.option(
+    "--security",
+    required=True,
+    type=str,
+    help=SECURITY_STRING_DESCRIPTION,
+)
+@click.option(
+    "--ref",
+    type=str,
+    multiple=True,
+    metavar="KEY:VALUE",
+    help=REFERENCES,
+)
+def download_request(
+    sha256: str,
+    source: str,
+    security: str,
+    ref: list[str],
+):
+    """Trigger a download request and wait for the first plugin status."""
+    if not api.sources.check_source_exists(source):
+        raise click.ClickException(f"Unknown source '{source}'. Use 'azul sources list' to see valid sources.")
+
+    split_refs = [x.split(":", 1) for x in ref]
+    references = {x[0]: x[1].lstrip() for x in split_refs}
+
+    api.binaries_data.submit_download_request(
+        sha256=sha256,
+        source_id=source,
+        security=security,
+        references=references,
+    )
+
+    timeout = 60
+    poll_interval = 2
+    start = time.time()
+    status = None
+
+    spinner = ["|", "/", "-", "\\"]
+    spinner_index = 0
+
+    click.echo("Waiting for plugin status |", nl=False)
+
+    try:
+        while time.time() - start < timeout:
+            try:
+                status = api.binaries_data.get_download_request_status(sha256)
+            except BadResponse404:
+                click.echo(
+                    f"\rWaiting for plugin status {spinner[spinner_index % len(spinner)]}",
+                    nl=False,
+                )
+                sys.stdout.flush()
+                spinner_index += 1
+                time.sleep(poll_interval)
+                continue
+            except BadResponse as ex:
+                raise click.ClickException(f"Unable to check download status: {ex}") from ex
+
+            download_statuses = status.get("data", [])
+
+            if any(s.get("entity", {}).get("status") != "queued" for s in download_statuses):
+                click.echo("\rWaiting for plugin status done")
+                click.echo(json.dumps(status, indent=2))
+                return
+
+            click.echo(
+                f"\rWaiting for plugin status {spinner[spinner_index % len(spinner)]}",
+                nl=False,
+            )
+            sys.stdout.flush()
+            spinner_index += 1
+            time.sleep(poll_interval)
+    except KeyboardInterrupt:
+        raise click.ClickException("\nCancelled.") from None
+
+    click.echo(f" timeout. Use 'azul b download-status {sha256}' to check.")
+
+    if status is not None:
+        click.echo(json.dumps(status, indent=2))
+
+
+@binaries.command(name="download-status")
+@click.argument("sha256")
+def download_status(sha256: str):
+    """Request download event status for provided sha256."""
+    result = api.binaries_data.get_download_request_status(sha256)
+
+    click.echo(json.dumps(result, indent=2))
 
 
 cli.add_command(_client_config)

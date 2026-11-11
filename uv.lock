@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 
 [options]
@@ -7,14 +7,14 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
-azul-plugin-retrohunt = false
-azul-security = false
-azul-nsrl-lookup-serve = false
-azul-runner = false
-malpz = false
-azul-metastore = false
 azul-bedrock = false
+azul-metastore = false
+azul-nsrl-lookup-serve = false
 azul-nsrl-lookup-server = false
+azul-plugin-retrohunt = false
+azul-runner = false
+azul-security = false
+malpz = false
 
 [[package]]
 name = "annotated-doc"
